@@ -1,11 +1,14 @@
+"use client";
 import Link from "next/link";
-import { supabaseServidor } from "@/lib/supabase/servidor";
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import { supabaseNavegador } from "@/lib/supabase/cliente";
 import { Escanear } from "@/componentes/panel/Escanear";
+import { useCargar } from "@/componentes/panel/useCargar";
 
-export default async function InicioPanel({ searchParams }: { searchParams: Promise<{ escanear?: string }> }) {
-  const { escanear } = await searchParams;
-  const supabase = await supabaseServidor();
-  const { data: r } = await supabase.rpc("resumen_panel");
+function Inicio() {
+  const abrir = useSearchParams().get("escanear") === "1";
+  const { datos: r } = useCargar(async () => (await supabaseNavegador().rpc("resumen_panel")).data);
   const tarjetas = r
     ? [
         { n: r.publicados, t: "Publicados", href: "/panel/articulos" },
@@ -18,7 +21,7 @@ export default async function InicioPanel({ searchParams }: { searchParams: Prom
     : [];
   return (
     <div className="space-y-5">
-      <Escanear abrirAlInicio={escanear === "1"} />
+      <Escanear abrirAlInicio={abrir} />
       <section aria-label="Resumen" className="grid grid-cols-3 gap-2">
         {tarjetas.map((c) => (
           <Link key={c.t} href={c.href} className="tarjeta p-3 text-center hover:border-coral">
@@ -29,4 +32,8 @@ export default async function InicioPanel({ searchParams }: { searchParams: Prom
       </section>
     </div>
   );
+}
+
+export default function PaginaInicio() {
+  return <Suspense><Inicio /></Suspense>;
 }

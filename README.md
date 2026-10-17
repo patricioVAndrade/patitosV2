@@ -32,8 +32,8 @@ En cada proyecto:
    - **Desactivá Email**: solo se entra con Google.
    - **Dejá activado "Allow new users to sign up"**. Hace falta para el primer ingreso con Google; los usuarios nuevos quedan pendientes.
 3. **Authentication → URL Configuration**:
-   - *Site URL*: `https://www.patitosbebe.com.ar`.
-   - *Redirect URLs*: `https://www.patitosbebe.com.ar/auth/callback` y `http://localhost:3000/auth/callback`.
+   - *Site URL*: `https://admin.patitosbebe.com.ar`.
+   - *Redirect URLs*: `https://admin.patitosbebe.com.ar/auth/callback` y `http://localhost:3000/auth/callback`.
 4. **El admin inicial** es el mail de `config.emails_admin` (migración `…005_datos_iniciales.sql`: `pato08070@gmail.com`). Ese mail entra directo como admin.
 
 ### 2. Google (login)
@@ -64,18 +64,12 @@ Qué hace la migración:
 - Corrige los códigos tipo `74711.0`, los costos de relleno (0 o 1) y los costos mal leídos (`4.728` → 4728).
 - Sube las **≈23.000 líneas de las listas de proveedores**. No se publican: sirven para que al escanear o escribir un nombre se complete solo.
 
-### 4. Alojar la app
-La app es un servidor Next.js estándar (`output: "standalone"`), sin depender de un proveedor. Opciones:
+### 4. Alojar la app en Cloudflare (donde ya tenés el dominio)
+Catálogo en `www.patitosbebe.com.ar` y panel separado en **`admin.patitosbebe.com.ar`**. En el dominio público, el panel y el login no existen. Paso a paso, plan recomendado y la capa extra de **Cloudflare Access** sobre el panel: **[docs/CLOUDFLARE.md](docs/CLOUDFLARE.md)**.
 
-| Opción | Costo aprox. | Comentario |
-|---|---|---|
-| **Vercel Pro** | US$ 20/mes | La más simple para Next.js: vista previa por cada cambio. El plan Hobby gratis **no permite uso comercial**. |
-| **Railway / Render** | US$ 5–7/mes | Con el `Dockerfile` incluido. |
-| **VPS propio** (Docker) | US$ 5/mes | Máximo control, más mantenimiento. |
+Copiá tu logo y favicon a `public/logo.png` y `public/favicon.png`.
 
-Variables de entorno (ver `.env.example`): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITIO_URL`, `NEXT_PUBLIC_WHATSAPP`.
-
-Copiá tu logo y favicon a `public/logo.png` y `public/favicon.png`. Después apuntá el dominio `www.patitosbebe.com.ar` al hosting elegido.
+La app también corre sin cambios en cualquier servidor Node, con el `Dockerfile` incluido (Railway, Render, VPS), si algún día querés mudarla.
 
 ### 5. GitHub Actions (secrets)
 | Secret | Para qué |
@@ -85,12 +79,13 @@ Copiá tu logo y favicon a `public/logo.png` y `public/favicon.png`. Después ap
 | `SUPABASE_REF_PRODUCCION`, `SUPABASE_DB_PASSWORD_PRODUCCION` | Base de producción |
 | `SUPABASE_DB_URL_PRODUCCION` | Backup diario |
 | `SUPABASE_URL`, `SUPABASE_ANON_KEY` | Que Supabase no pause el proyecto |
+| `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (+ variables `NEXT_PUBLIC_*`) | Publicar en Cloudflare (ver docs/CLOUDFLARE.md) |
 
 ---
 
 ## Trabajo diario
 
-- **Empleados**: entran a `/panel` desde el celular con Google. Las tareas principales:
+- **Empleados**: entran a `admin.patitosbebe.com.ar` desde el celular con Google. Las tareas principales:
   - **Escanear**: si el artículo existe, botones rápidos de *Disponible / Pocas / Agotado* y *Ocultar*. Si está en una lista de proveedor, se completa solo. Si no existe, *Crear nuevo* o *Asignar este código a un artículo existente*.
   - **Modo continuo**: escanear → foto → publicar → vuelve a abrir la cámara.
   - **Masiva**: elegir varias fotos, escribir los nombres (Enter pasa al siguiente) y *Publicar todos*.
@@ -104,6 +99,8 @@ cp .env.example .env.local      # apuntando al proyecto de PRUEBA
 npm run dev                     # http://localhost:3000
 npm run typecheck && npm test   # tipos + pruebas unitarias
 ```
+Las fotos de `e2e/fotos/` son 3 imágenes chicas de prueba (≈45 KB c/u) que usan solo las pruebas automáticas. Las fotos reales de los artículos van a Supabase Storage y **nunca** al repositorio.
+
 Para cambiar la base:
 1. `npm run db:nueva nombre_del_cambio` crea un archivo nuevo en `supabase/migrations/`.
 2. Escribí el SQL en ese archivo.
@@ -115,6 +112,7 @@ Pruebas automáticas, en cada cambio:
 - 46 de permisos y reglas en la base.
 - 11 unitarias de TypeScript.
 - 3 de la migración en Python.
-- 12 de punta a punta en un navegador: catálogo, login con Google, aprobación, escaneo, alta con foto, autocompletar, carga masiva, cambios en lote e historial.
+- 14 de punta a punta en un navegador: catálogo, separación de dominios, login con Google, aprobación, escaneo, alta con foto, autocompletar, carga masiva, cambios en lote e historial.
+- Verificación de que la app compila para Cloudflare Workers.
 
 Ver `e2e/README.md`.

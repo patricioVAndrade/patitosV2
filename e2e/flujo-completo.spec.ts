@@ -4,10 +4,13 @@ import path from "node:path";
 // Fotos de ejemplo para subir (cualquier imagen sirve)
 const FOTOS = (process.env.E2E_FOTOS ?? "").split(",").filter(Boolean);
 const ADMIN = "pato08070@gmail.com";
+// Dominio del panel (ej. http://admin.localhost:3000). Vacío = mismo dominio que el catálogo.
+const PANEL = process.env.E2E_ADMIN_URL ?? "";
+const enPanel = (ruta: string) => (/^\/(panel|ingresar|pendiente)/.test(ruta) ? `${PANEL}${ruta}` : ruta);
 const EMPLEADA = `sofi.${Date.now()}@gmail.com`;
 
 async function ingresarCon(page: Page, email: string, nombre: string) {
-  await page.goto("/panel");
+  await page.goto(enPanel("/panel"));
   await expect(page).toHaveURL(/\/ingresar/);
   await page.getByRole("button", { name: "Ingresar con Google" }).click();
   await page.getByLabel("Email").fill(email);
@@ -18,7 +21,7 @@ async function ingresarCon(page: Page, email: string, nombre: string) {
 
 /** Navega y espera a que la página esté lista para usarse */
 async function ir(page: Page, url: string) {
-  await page.goto(url);
+  await page.goto(enPanel(url));
   await page.waitForLoadState("networkidle");
 }
 
@@ -52,6 +55,25 @@ test.describe("Catálogo público", () => {
     await expect(page).toHaveURL(/\/p\/PB-000001\/billetera/);
     const r = await page.goto("/p/PB-999999");
     expect(r?.status()).toBe(404);
+  });
+});
+
+test.describe("Separación catálogo / panel", () => {
+  test.skip(!PANEL, "Definí E2E_ADMIN_URL para probar el dominio separado");
+
+  test("en el dominio público el panel y el login no existen", async ({ page }) => {
+    for (const ruta of ["/panel", "/panel/articulos", "/ingresar", "/pendiente"]) {
+      const r = await page.goto(ruta);
+      expect(r?.status(), ruta).toBe(404);
+    }
+  });
+
+  test("en el dominio del panel el catálogo redirige al público", async ({ page }) => {
+    await page.goto(`${PANEL}/c/jugueteria`);
+    const publico = new URL(process.env.E2E_URL ?? "http://localhost:3000").host;
+    await expect(page).toHaveURL(new RegExp(`^https?://${publico.replace(/\./g, "\\.")}/c/jugueteria`));
+    await page.goto(`${PANEL}/`);
+    await expect(page).toHaveURL(/\/ingresar/);
   });
 });
 

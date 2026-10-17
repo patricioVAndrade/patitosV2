@@ -15,7 +15,7 @@ export async function supabaseServidor() {
         try {
           lista.forEach(({ name, value, options }) => almacen.set(name, value, options));
         } catch {
-          // Llamado desde un Server Component: lo resuelve proxy.ts al refrescar la sesión
+          // Llamado desde un Server Component: no se pueden escribir cookies (no hace falta)
         }
       },
     },

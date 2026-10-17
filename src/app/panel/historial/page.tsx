@@ -1,5 +1,8 @@
+"use client";
 import Link from "next/link";
-import { supabaseServidor } from "@/lib/supabase/servidor";
+import { useState } from "react";
+import { supabaseNavegador } from "@/lib/supabase/cliente";
+import { useCargar } from "@/componentes/panel/useCargar";
 import { fechaHora } from "@/lib/formato";
 import type { Json } from "@/lib/supabase/database.types";
 
@@ -27,21 +30,21 @@ function detalle(tabla: string, accion: string, cambios: Json | null, nombres: N
     .join(" · ");
 }
 
-export default async function PaginaHistorial({ searchParams }: { searchParams: Promise<{ pag?: string; producto?: string }> }) {
-  const sp = await searchParams;
-  const pag = Math.max(1, Number(sp.pag) || 1);
-  const supabase = await supabaseServidor();
-  let q = supabase.from("historial").select("*").order("fecha", { ascending: false }).range((pag - 1) * POR_PAGINA, pag * POR_PAGINA - 1);
-  if (sp.producto) q = q.eq("producto_id", sp.producto);
-  const [{ data }, cats, marcas, provs] = await Promise.all([
-    q,
-    supabase.from("categorias").select("id,nombre"),
-    supabase.from("marcas").select("id,nombre"),
-    supabase.from("proveedores").select("id,nombre"),
-  ]);
-  const filas = data ?? [];
-  const mapa = (l: { id: number; nombre: string }[] | null) => Object.fromEntries((l ?? []).map((x) => [String(x.id), x.nombre]));
-  const nombres: Nombres = { categoria_id: mapa(cats.data), marca_id: mapa(marcas.data), proveedor_id: mapa(provs.data) };
+export default function PaginaHistorial() {
+  const [pag, setPag] = useState(1);
+  const { datos } = useCargar(async () => {
+    const supabase = supabaseNavegador();
+    const [h, cats, marcas, provs] = await Promise.all([
+      supabase.from("historial").select("*").order("fecha", { ascending: false }).range((pag - 1) * POR_PAGINA, pag * POR_PAGINA - 1),
+      supabase.from("categorias").select("id,nombre"),
+      supabase.from("marcas").select("id,nombre"),
+      supabase.from("proveedores").select("id,nombre"),
+    ]);
+    const mapa = (l: { id: number; nombre: string }[] | null) => Object.fromEntries((l ?? []).map((x) => [String(x.id), x.nombre]));
+    return { filas: h.data ?? [], nombres: { categoria_id: mapa(cats.data), marca_id: mapa(marcas.data), proveedor_id: mapa(provs.data) } as Nombres };
+  }, [pag]);
+  if (!datos) return <p className="text-suave">Cargando…</p>;
+  const { filas, nombres } = datos;
 
   return (
     <div className="space-y-3">
@@ -71,8 +74,8 @@ export default async function PaginaHistorial({ searchParams }: { searchParams: 
         {filas.length === 0 && <li className="text-suave">Todavía no hay movimientos.</li>}
       </ul>
       <div className="flex justify-between">
-        {pag > 1 ? <Link href={`?pag=${pag - 1}`} className="btn-claro">Más nuevos</Link> : <span />}
-        {filas.length === POR_PAGINA && <Link href={`?pag=${pag + 1}`} className="btn-claro">Más viejos</Link>}
+        {pag > 1 ? <button onClick={() => setPag(pag - 1)} className="btn-claro">Más nuevos</button> : <span />}
+        {filas.length === POR_PAGINA && <button onClick={() => setPag(pag + 1)} className="btn-claro">Más viejos</button>}
       </div>
     </div>
   );

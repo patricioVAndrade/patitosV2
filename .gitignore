@@ -16,3 +16,8 @@ supabase/.branches/
 public/zxing/
 
 herramientas/informe_migracion.csv
+
+# Cloudflare
+.open-next/
+.wrangler/
+.dev.vars

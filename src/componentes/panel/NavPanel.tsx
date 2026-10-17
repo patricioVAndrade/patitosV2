@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Perfil } from "@/lib/supabase/database.types";
 import { puede } from "@/lib/permisos";
+import { env } from "@/lib/env";
 import { IconoFotos, IconoInicio, IconoLista, IconoReloj, IconoSalir, IconoUsuarios } from "@/componentes/ui/Iconos";
 
 export function NavPanel({ perfil }: { perfil: Perfil }) {
@@ -32,7 +33,7 @@ export function NavPanel({ perfil }: { perfil: Perfil }) {
           <p className="font-medium">{perfil.nombre}</p>
           <p className="mb-2 text-xs capitalize text-suave">{perfil.rol}</p>
           <div className="flex gap-2">
-            <Link href="/" target="_blank" className="btn-claro px-3 py-1 text-xs">Ver catálogo</Link>
+            <a href={`${env.sitioUrl}/`} target="_blank" rel="noopener" className="btn-claro px-3 py-1 text-xs">Ver catálogo</a>
             <form action="/auth/salir" method="post"><button className="btn-claro px-3 py-1 text-xs" title="Salir"><IconoSalir className="size-4" /></button></form>
           </div>
         </div>

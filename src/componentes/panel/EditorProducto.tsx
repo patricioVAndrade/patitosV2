@@ -1,11 +1,11 @@
 "use client";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { supabaseNavegador } from "@/lib/supabase/cliente";
 import { comprimirFoto, subirFoto, borrarFotos, type FotoComprimida, type FotoSubida } from "@/lib/imagenes";
 import { esCodigoDeBarras, normalizar, urlFoto, urlProducto } from "@/lib/formato";
 import { mensajeError } from "@/lib/errores";
+import { env } from "@/lib/env";
 import { esquemaProducto } from "@/lib/validacion";
 import type { Disponibilidad, EstadoProducto, ItemLista, Producto, TipoCodigo } from "@/lib/supabase/database.types";
 import { usePanel } from "./ContextoPanel";
@@ -240,7 +240,7 @@ export function EditorProducto({ iniciales, listas, aviso, continuo, esAdmin }: 
         {p && (
           <div className="flex items-center gap-2 text-sm">
             <span className="font-mono text-suave">{p.sku}</span>
-            {p.estado === "publicado" && <Link href={urlProducto(p)} target="_blank" className="btn-claro px-3 py-1 text-xs">Ver en la web</Link>}
+            {p.estado === "publicado" && <a href={`${env.sitioUrl}${urlProducto(p)}`} target="_blank" rel="noopener" className="btn-claro px-3 py-1 text-xs">Ver en la web</a>}
           </div>
         )}
       </div>

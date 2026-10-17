@@ -25,6 +25,23 @@ jobs:
         with: { python-version: "3.12" }
       - run: pip install -r herramientas/requirements.txt pytest && pytest herramientas -q
 
+  cloudflare:
+    name: Compila para Cloudflare Workers
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://ejemplo.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: clave-de-ejemplo
+      NEXT_PUBLIC_SITIO_URL: https://www.patitosbebe.com.ar
+      NEXT_PUBLIC_ADMIN_URL: https://admin.patitosbebe.com.ar
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run cf:build
+      - run: npx wrangler deploy --dry-run --outdir .wrangler-dry
+
   base-de-datos:
     name: Migraciones y permisos (RLS)
     runs-on: ubuntu-latest
@@ -47,7 +64,7 @@ jobs:
 
   e2e:
     name: Pruebas de punta a punta
-    needs: [calidad, base-de-datos]
+    needs: [calidad, base-de-datos, cloudflare]
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -80,6 +97,7 @@ jobs:
           export NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
           export NEXT_PUBLIC_SUPABASE_ANON_KEY=$(cat e2e/.tmp/anon_key)
           export NEXT_PUBLIC_SITIO_URL=http://localhost:3000
+          export NEXT_PUBLIC_ADMIN_URL=http://admin.localhost:3000
           npm run build
           (npm start > e2e/.tmp/next.log 2>&1 &)
           for i in $(seq 1 60); do curl -fsS http://localhost:3000/ >/dev/null && break; sleep 1; done
@@ -88,6 +106,7 @@ jobs:
         env:
           E2E_FOTOS: e2e/fotos/juguete1.jpg,e2e/fotos/juguete2.jpg,e2e/fotos/juguete3.jpg
           E2E_CODIGO_LISTA: PRUEBA001
+          E2E_ADMIN_URL: http://admin.localhost:3000
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

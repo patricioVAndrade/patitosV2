@@ -10,9 +10,12 @@
 ## Capas
 
 ```
-Celular / PC ──► Next.js (Vercel/Railway/VPS)
-                  ├─ Catálogo público: Server Components → vistas v_catalogo / v_producto (solo lectura, anónimo)
-                  └─ Panel: componentes cliente → Supabase con la sesión del usuario (RLS) + funciones RPC
+Clientes ──► www.patitosbebe.com.ar ──┐
+Personal ──► admin.patitosbebe.com.ar ┤  (opcional: Cloudflare Access delante)
+                                      ▼
+            Next.js en Cloudflare Workers (un solo Worker; next.config.ts separa por dominio)
+              ├─ Catálogo público: Server Components → vistas v_catalogo / v_producto (solo lectura, anónimo)
+              └─ Panel (solo en admin.*): app en el navegador → Supabase con la sesión del usuario (RLS) + RPC
                                     │
 Supabase ────────────────────────────┤
   ├─ Postgres: tablas, RLS, triggers (historial, precios), funciones (guardar_producto, buscar_codigo…)
@@ -47,7 +50,8 @@ config (margen, redondeo, admins iniciales)
 | Capa | Qué hace |
 |---|---|
 | **RLS en Postgres** (la que importa) | El público no lee tablas: solo las vistas `v_catalogo` y `v_producto`, que muestran lo publicado y sin costos. Un usuario *pendiente* o *bloqueado* no puede nada. Los costos y las listas de proveedores son solo para admin; el personal usa `buscar_en_listas`, que devuelve precio sugerido, no costo. Borrar es solo admin. Siempre queda al menos un admin. |
-| **Servidor Next** | `proxy.ts` y el layout del panel exigen sesión y perfil activo. |
+| **Dominios separados** | En `www` el panel, el login y `/auth` responden 404; viven solo en `admin.`. Las cookies de sesión son del subdominio `admin` y nunca viajan al público. Opcional: Cloudflare Access delante de `admin.` (docs/CLOUDFLARE.md). |
+| **Panel** | `GuardiaPanel` exige sesión y perfil activo antes de mostrar nada. Igual, sin RLS no habría datos que mostrar. |
 | **Interfaz** | Oculta botones según el rol (`src/lib/permisos.ts`). Es solo comodidad: no es seguridad. |
 
 Las vistas públicas son *security definer* a propósito: el linter de Supabase las va a marcar, pero filtran por `estado = 'publicado'` y exponen solo columnas seguras.
@@ -71,7 +75,6 @@ src/
     imagenes.ts          compresión y subida de fotos
     validacion.ts        reglas del formulario (zod)
     permisos.ts formato.ts errores.ts negocio.ts env.ts sesion.ts
-  proxy.ts               refresca la sesión y protege /panel
 supabase/
   migrations/            ÚNICA fuente de verdad del esquema (nunca editar las ya aplicadas)
   tests/                 pruebas de permisos en SQL
@@ -108,6 +111,7 @@ Ejemplo: **aumento de precios por marca**, que ya tiene la estructura creada.
 ## Decisiones (y por qué)
 
 - **Next.js + React + TypeScript**: el ecosistema más usado, que ya conocés; páginas del servidor para Google y componentes interactivos para el panel en la misma app.
+- **Cloudflare Workers** (adaptador OpenNext): el dominio ya estaba ahí; el panel queda estático (no gasta CPU) y el catálogo se genera en el servidor. Si algún día hay que mudarse, el mismo código corre en Node (`Dockerfile`).
 - **Supabase**: Postgres real (sin lock-in), RLS, login con Google y almacenamiento en un solo servicio, con plan gratis suficiente para empezar.
 - **Fotos comprimidas en el celular** y no en el servidor: el plan gratis no transforma imágenes, la subida es más rápida con mala señal y no se paga procesamiento.
 - **Funciones RPC para operaciones compuestas** (`guardar_producto`): artículo + códigos + fotos + etiquetas + costo se guardan en una sola transacción. Si algo falla, no queda nada a medias.
