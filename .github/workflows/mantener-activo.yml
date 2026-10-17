@@ -1,0 +1,14 @@
+# El plan gratis de Supabase pausa un proyecto tras 7 días sin actividad.
+# Con visitas diarias no pasa; esto lo garantiza igual. Secrets: SUPABASE_URL, SUPABASE_ANON_KEY
+name: Mantener Supabase activo
+on:
+  schedule:
+    - cron: "41 12 */3 * *"
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -fsS "${{ secrets.SUPABASE_URL }}/rest/v1/v_categorias?select=slug&limit=1" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" > /dev/null && echo OK

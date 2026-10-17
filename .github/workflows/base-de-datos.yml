@@ -1,0 +1,42 @@
+# Aplica las migraciones nuevas de supabase/migrations:
+#  · a PRUEBA automáticamente cuando se mergea a main (si CI pasó)
+#  · a PRODUCCIÓN solo cuando lo pedís a mano (Actions → "Base de datos" → Run workflow → produccion)
+# Secrets necesarios (Settings → Secrets → Actions):
+#   SUPABASE_ACCESS_TOKEN                         (supabase.com → Account → Access Tokens)
+#   SUPABASE_REF_PRUEBA,  SUPABASE_DB_PASSWORD_PRUEBA
+#   SUPABASE_REF_PRODUCCION, SUPABASE_DB_PASSWORD_PRODUCCION
+name: Base de datos
+
+on:
+  push:
+    branches: [main]
+    paths: ["supabase/migrations/**"]
+  workflow_dispatch:
+    inputs:
+      entorno:
+        description: "¿A qué base aplicar las migraciones?"
+        type: choice
+        options: [prueba, produccion]
+        default: prueba
+
+concurrency:
+  group: migraciones-${{ inputs.entorno || 'prueba' }}
+  cancel-in-progress: false
+
+jobs:
+  migrar:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.entorno || 'prueba' }}
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      REF: ${{ (inputs.entorno || 'prueba') == 'produccion' && secrets.SUPABASE_REF_PRODUCCION || secrets.SUPABASE_REF_PRUEBA }}
+      SUPABASE_DB_PASSWORD: ${{ (inputs.entorno || 'prueba') == 'produccion' && secrets.SUPABASE_DB_PASSWORD_PRODUCCION || secrets.SUPABASE_DB_PASSWORD_PRUEBA }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with: { version: 2.48.3 }
+      - run: supabase link --project-ref "$REF"
+      - name: Ver qué se va a aplicar
+        run: supabase migration list
+      - name: Aplicar migraciones
+        run: supabase db push --include-all

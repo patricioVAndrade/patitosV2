@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Fredoka", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --color-crema: #fff9f5;
+  --color-tinta: #404040;
+  --color-suave: #7a716b;
+  --color-borde: #eee4dc;
+  --color-coral: #ff6b6b;
+  --color-coral-oscuro: #e04f4f;
+  --color-whatsapp: #25d366;
+  --color-whatsapp-oscuro: #1ebe5a;
+  --color-tema-0: #ffc4d6;
+  --color-tema-1: #bde0fe;
+  --color-tema-2: #fff59d;
+  --color-tema-3: #c8e6c9;
+}
+
+html { -webkit-text-size-adjust: 100%; }
+body { background: var(--color-crema); color: var(--color-tinta); }
+:focus-visible { outline: 3px solid rgb(77 163 255 / 0.55); outline-offset: 2px; }
+
+/* Clases propias reutilizables */
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium transition active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+}
+@utility btn-primario {
+  @apply btn bg-coral text-white hover:bg-coral-oscuro;
+}
+@utility btn-claro {
+  @apply btn bg-white border border-borde text-tinta hover:bg-crema;
+}
+@utility btn-whatsapp {
+  @apply btn bg-whatsapp text-white hover:bg-whatsapp-oscuro;
+}
+@utility campo {
+  @apply w-full rounded-xl border border-borde bg-white px-3 py-2 text-base outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-200;
+}
+@utility etiqueta-campo {
+  @apply mb-1 block text-sm font-medium text-suave;
+}
+@utility tarjeta {
+  @apply rounded-2xl border border-borde bg-white;
+}
+@utility chip {
+  @apply inline-flex shrink-0 items-center gap-1 rounded-full border border-borde bg-white px-3 py-1 text-sm whitespace-nowrap;
+}
+@utility chip-activo {
+  @apply border-coral bg-coral text-white;
+}

@@ -1,0 +1,31 @@
+# Copia de seguridad diaria de la base de PRODUCCIÓN (esquema + datos).
+# Queda como "artifact" privado del repositorio durante 30 días.
+# Secret necesario: SUPABASE_DB_URL_PRODUCCION
+#   (Supabase → Connect → "Session pooler" → URI, con la contraseña de la base)
+name: Backup diario
+
+on:
+  schedule:
+    - cron: "17 7 * * *"   # 04:17 hora argentina
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: supabase/setup-cli@v1
+        with: { version: 2.48.3 }
+      - name: Exportar
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL_PRODUCCION }}
+        run: |
+          mkdir backup
+          supabase db dump --db-url "$DB_URL" -f backup/esquema.sql
+          supabase db dump --db-url "$DB_URL" -f backup/datos.sql --data-only --use-copy
+          supabase db dump --db-url "$DB_URL" -f backup/roles.sql --role-only
+          gzip backup/*.sql
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backup-${{ github.run_id }}
+          path: backup/
+          retention-days: 30
