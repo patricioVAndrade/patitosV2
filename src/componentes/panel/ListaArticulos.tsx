@@ -27,6 +27,7 @@ const FILTROS = [
   { v: "agotados", t: "Agotados" },
   { v: "pocas", t: "Pocas" },
   { v: "sinfoto", t: "Sin foto" },
+  { v: "sinprecio", t: "Sin precio" },
   { v: "sinmarca", t: "Sin marca" },
   { v: "ofertas", t: "Ofertas" },
 ];
@@ -55,6 +56,7 @@ export function ListaArticulos({ filtroInicial, textoInicial, categorias, marcas
     if (filtro === "ocultos") q = q.neq("estado", "publicado");
     if (filtro === "agotados") q = q.eq("disponibilidad", "agotado");
     if (filtro === "pocas") q = q.eq("disponibilidad", "pocas");
+    if (filtro === "sinprecio") q = q.is("precio", null);
     if (filtro === "sinmarca") q = q.is("marca_id", null);
     if (filtro === "ofertas") q = q.eq("en_oferta", true);
     if (sinFoto) q = q.is("imagenes", null);
