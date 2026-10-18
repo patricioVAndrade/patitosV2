@@ -16,8 +16,23 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  configurado:
+    name: ¿Hay claves cargadas?
+    runs-on: ubuntu-latest
+    outputs:
+      ok: ${{ steps.v.outputs.ok }}
+    steps:
+      - id: v
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"
+          else echo "ok=false" >> "$GITHUB_OUTPUT"; echo "::notice::Faltan claves de Cloudflare: no se publica (ver docs/CLOUDFLARE.md)."; fi
+
   cloudflare:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    needs: configurado
+    if: ${{ needs.configurado.outputs.ok == 'true' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') }}
     runs-on: ubuntu-latest
     environment: produccion
     env:
