@@ -39,17 +39,17 @@ create policy config_admin  on public.config for all    to authenticated using (
 create policy perfiles_leer  on public.perfiles for select to authenticated using (id = auth.uid() or public.es_admin());
 create policy perfiles_admin on public.perfiles for update to authenticated using (public.es_admin()) with check (public.es_admin());
 
--- Clasificación: el personal lee; categorías/etiquetas/marcas/proveedores las administra encargado o admin
+-- Clasificación: el personal lee y administra; borrar marcas solo admin
 create policy categorias_leer on public.categorias for select to authenticated using (true);
-create policy categorias_edit on public.categorias for all to authenticated using (public.es_encargado()) with check (public.es_encargado());
+create policy categorias_edit on public.categorias for all to authenticated using (public.es_staff()) with check (public.es_staff());
 create policy marcas_leer     on public.marcas for select to authenticated using (public.es_staff());
-create policy marcas_alta     on public.marcas for insert to authenticated with check (public.es_staff());   -- un cargador puede crear la marca al cargar
-create policy marcas_edit     on public.marcas for update to authenticated using (public.es_encargado()) with check (public.es_encargado());
+create policy marcas_alta     on public.marcas for insert to authenticated with check (public.es_staff());
+create policy marcas_edit     on public.marcas for update to authenticated using (public.es_staff()) with check (public.es_staff());
 create policy marcas_baja     on public.marcas for delete to authenticated using (public.es_admin());
 create policy proveedores_leer on public.proveedores for select to authenticated using (public.es_staff());
-create policy proveedores_edit on public.proveedores for all to authenticated using (public.es_encargado()) with check (public.es_encargado());
+create policy proveedores_edit on public.proveedores for all to authenticated using (public.es_staff()) with check (public.es_staff());
 create policy etiquetas_leer  on public.etiquetas for select to authenticated using (public.es_staff());
-create policy etiquetas_edit  on public.etiquetas for all to authenticated using (public.es_encargado()) with check (public.es_encargado());
+create policy etiquetas_edit  on public.etiquetas for all to authenticated using (public.es_staff()) with check (public.es_staff());
 
 -- Productos y sus partes: el personal carga y edita; borrar definitivamente solo admin
 create policy productos_leer  on public.productos for select to authenticated using (public.es_staff());
@@ -61,14 +61,15 @@ create policy codigos_todo    on public.codigos            for all to authentica
 create policy imagenes_todo   on public.imagenes           for all to authenticated using (public.es_staff()) with check (public.es_staff());
 create policy prodetiq_todo   on public.producto_etiquetas for all to authenticated using (public.es_staff()) with check (public.es_staff());
 
--- Costos y listas de proveedores: solo admin (el personal usa la función buscar_en_listas, que no muestra costos)
-create policy privado_admin   on public.productos_privado for all to authenticated using (public.es_admin()) with check (public.es_admin());
+-- Costos: los ve y carga todo el personal. Listas de proveedores: el personal lee; las carga el script (service_role) o un admin
+create policy privado_staff   on public.productos_privado for all to authenticated using (public.es_staff()) with check (public.es_staff());
+create policy listas_leer     on public.lista_proveedores for select to authenticated using (public.es_staff());
 create policy listas_admin    on public.lista_proveedores for all to authenticated using (public.es_admin()) with check (public.es_admin());
 
--- Precios: historial visible al personal; ajustes masivos para encargado/admin
+-- Precios: historial de precios y ajustes masivos para todo el personal
 create policy hprecios_leer   on public.historial_precios for select to authenticated using (public.es_staff());
 create policy ajustes_leer    on public.ajustes_precio for select to authenticated using (public.es_staff());
-create policy ajustes_edit    on public.ajustes_precio for all to authenticated using (public.es_encargado()) with check (public.es_encargado());
+create policy ajustes_edit    on public.ajustes_precio for all to authenticated using (public.es_staff()) with check (public.es_staff());
 
 -- Stock (etapa 2)
 create policy ubicaciones_leer on public.ubicaciones for select to authenticated using (public.es_staff());
@@ -77,9 +78,8 @@ create policy movimientos_leer on public.movimientos_stock for select to authent
 create policy movimientos_alta on public.movimientos_stock for insert to authenticated with check (public.es_staff());
 -- (los movimientos no se editan ni borran: se corrigen con otro movimiento)
 
--- Historial: lo lee el personal, salvo los cambios de costo (solo admin). Nadie lo edita.
-create policy historial_leer on public.historial for select to authenticated
-  using (public.es_staff() and (tabla <> 'productos_privado' or public.es_admin()));
+-- Historial (logs): solo admin. Nadie lo edita.
+create policy historial_leer on public.historial for select to authenticated using (public.es_admin());
 
 -- ---------------------------------------------------------------------
 -- VISTAS PÚBLICAS (lo único que ve el cliente)
@@ -117,6 +117,7 @@ create view public.v_producto with (security_barrier = true) as
 select
   v.*,
   p.descripcion,
+  p.variantes,
   coalesce((
     select jsonb_agg(jsonb_build_object('thumb', i.ruta_thumb, 'full', i.ruta_full, 'ancho', i.ancho, 'alto', i.alto)
                      order by i.orden, i.creado)

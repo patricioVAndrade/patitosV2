@@ -12,7 +12,7 @@ export function NavPanel({ perfil }: { perfil: Perfil }) {
     { href: "/panel", texto: "Inicio", Icono: IconoInicio, exacto: true },
     { href: "/panel/articulos", texto: "Artículos", Icono: IconoLista },
     { href: "/panel/masiva", texto: "Masiva", Icono: IconoFotos },
-    { href: "/panel/historial", texto: "Historial", Icono: IconoReloj },
+    ...(puede.verHistorial(perfil.rol) ? [{ href: "/panel/historial", texto: "Historial", Icono: IconoReloj }] : []),
     ...(puede.administrarUsuarios(perfil.rol) ? [{ href: "/panel/usuarios", texto: "Usuarios", Icono: IconoUsuarios }] : []),
   ];
   const activo = (href: string, exacto?: boolean) => (exacto ? ruta === href : ruta.startsWith(href));

@@ -46,7 +46,7 @@ begin
            'tipo', 'lista',
            'item', jsonb_build_object(
              'codigo', l.codigo, 'nombre', l.nombre, 'categoria', l.categoria, 'marca', l.marca,
-             'proveedor_id', l.proveedor_id, 'proveedor', pr.nombre,
+             'proveedor_id', l.proveedor_id, 'proveedor', pr.nombre, 'costo', l.costo,
              'precio_sugerido', public.precio_sugerido(l.costo)))
     into v_res
   from public.lista_proveedores l
@@ -59,10 +59,10 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------------
--- Autocompletar desde las listas de proveedores (sin mostrar costos)
+-- Autocompletar desde las listas de proveedores
 -- ---------------------------------------------------------------------
 create or replace function public.buscar_en_listas(p_texto text, p_limite int default 8)
-returns table (codigo text, nombre text, categoria text, marca text, proveedor_id smallint, proveedor text, precio_sugerido numeric, ya_cargado boolean)
+returns table (codigo text, nombre text, categoria text, marca text, proveedor_id smallint, proveedor text, costo numeric, precio_sugerido numeric, ya_cargado boolean)
 language plpgsql stable security definer set search_path = '' as $$
 declare
   v_patrones text[];
@@ -77,7 +77,7 @@ begin
     return;
   end if;
   return query
-    select l.codigo, l.nombre, l.categoria, l.marca, l.proveedor_id, pr.nombre,
+    select l.codigo, l.nombre, l.categoria, l.marca, l.proveedor_id, pr.nombre, l.costo,
            public.precio_sugerido(l.costo),
            exists (select 1 from public.codigos c where c.codigo = l.codigo)
     from public.lista_proveedores l
@@ -86,6 +86,17 @@ begin
     order by length(l.nombre)
     limit least(greatest(p_limite, 1), 30);
 end $$;
+
+-- ---------------------------------------------------------------------
+-- De una lista de archivos de fotos, cuáles ya no usa ningún artículo
+-- (se pueden borrar del storage sin romper otro artículo que comparte la foto)
+-- ---------------------------------------------------------------------
+create or replace function public.fotos_sin_uso(p_rutas text[])
+returns text[] language sql stable security invoker set search_path = '' as $$
+  select coalesce(array_agg(distinct r), '{}')
+  from unnest(coalesce(p_rutas, '{}')) r
+  where not exists (select 1 from public.imagenes i where i.ruta_thumb = r or i.ruta_full = r)
+$$;
 
 -- ---------------------------------------------------------------------
 -- Guardar un artículo completo (alta o edición) en una sola transacción:
@@ -104,6 +115,7 @@ declare
   v_lista   text[] := '{}';
   v_orden   smallint := 0;
   v_quitadas jsonb := '[]'::jsonb;
+  v_borradas text[];
 begin
   if not public.es_staff() then
     raise exception 'No tenés permiso para cargar artículos.' using errcode = '42501';
@@ -111,11 +123,12 @@ begin
 
   if v_id is null then
     insert into public.productos (
-      nombre, descripcion, categoria_id, marca_id, proveedor_id, precio, precio_anterior,
+      nombre, descripcion, variantes, categoria_id, marca_id, proveedor_id, precio, precio_anterior,
       mostrar_precio, en_oferta, estado, disponibilidad, nuevo_hasta, edad_desde_meses, edad_hasta_meses)
     values (
       datos ->> 'nombre',
       nullif(btrim(datos ->> 'descripcion'), ''),
+      nullif(btrim(datos ->> 'variantes'), ''),
       (datos ->> 'categoria_id')::smallint,
       nullif(datos ->> 'marca_id', '')::integer,
       nullif(datos ->> 'proveedor_id', '')::smallint,
@@ -133,6 +146,7 @@ begin
     update public.productos p set
       nombre           = case when datos ? 'nombre'           then datos ->> 'nombre' else p.nombre end,
       descripcion      = case when datos ? 'descripcion'      then nullif(btrim(datos ->> 'descripcion'), '') else p.descripcion end,
+      variantes        = case when datos ? 'variantes'        then nullif(btrim(datos ->> 'variantes'), '') else p.variantes end,
       categoria_id     = case when datos ? 'categoria_id'     then (datos ->> 'categoria_id')::smallint else p.categoria_id end,
       marca_id         = case when datos ? 'marca_id'         then nullif(datos ->> 'marca_id', '')::integer else p.marca_id end,
       proveedor_id     = case when datos ? 'proveedor_id'     then nullif(datos ->> 'proveedor_id', '')::smallint else p.proveedor_id end,
@@ -194,8 +208,11 @@ begin
       where producto_id = v_prod.id and not (ruta_thumb = any (v_lista))
       returning ruta_thumb, ruta_full
     )
-    select coalesce(jsonb_agg(r), '[]'::jsonb) into v_quitadas
+    select array_agg(r) into v_borradas
     from (select ruta_thumb as r from borradas union all select ruta_full from borradas) x;
+    -- Solo se devuelven para borrar del storage las que ya no usa NINGÚN artículo
+    -- (una misma foto puede estar en varios: duplicados, misma caja con varios códigos…)
+    v_quitadas := to_jsonb(coalesce(public.fotos_sin_uso(v_borradas), '{}'::text[]));
   end if;
 
   -- Etiquetas
@@ -208,8 +225,8 @@ begin
     on conflict do nothing;
   end if;
 
-  -- Costo (solo admin; para el resto se ignora en silencio)
-  if datos ? 'costo' and public.es_admin() then
+  -- Costo (privado: nunca se publica)
+  if datos ? 'costo' then
     insert into public.productos_privado (producto_id, costo)
     values (v_prod.id, nullif(datos ->> 'costo', '')::numeric)
     on conflict (producto_id) do update set costo = excluded.costo
@@ -273,8 +290,9 @@ revoke all on function public.buscar_en_listas(text, int)       from public, ano
 revoke all on function public.guardar_producto(jsonb)           from public, anon;
 revoke all on function public.cambiar_productos(uuid[], jsonb)  from public, anon;
 revoke all on function public.resumen_panel()                   from public, anon;
+revoke all on function public.fotos_sin_uso(text[])             from public, anon;
 grant execute on function public.precio_sugerido(numeric), public.buscar_codigo(text), public.buscar_en_listas(text, int),
-  public.guardar_producto(jsonb), public.cambiar_productos(uuid[], jsonb), public.resumen_panel() to authenticated;
+  public.guardar_producto(jsonb), public.cambiar_productos(uuid[], jsonb), public.resumen_panel(), public.fotos_sin_uso(text[]) to authenticated;
 
 -- ---------------------------------------------------------------------
 -- Uso interno (script de migración): deja el contador de SKU después del mayor existente

@@ -20,9 +20,10 @@ interface Resumen {
   disponibilidad: Disponibilidad;
   categorias: { nombre: string } | null;
   imagenes: { ruta_thumb: string; orden: number }[];
+  productos_privado: { costo: number | null } | null;
 }
 
-const SELECT_RESUMEN = "id,sku,nombre,precio,estado,disponibilidad,categorias(nombre),imagenes(ruta_thumb,orden)";
+const SELECT_RESUMEN = "id,sku,nombre,precio,estado,disponibilidad,categorias(nombre),imagenes(ruta_thumb,orden),productos_privado(costo)";
 
 export function Escanear({ abrirAlInicio }: { abrirAlInicio: boolean }) {
   const supabase = supabaseNavegador();
@@ -112,7 +113,8 @@ export function Escanear({ abrirAlInicio }: { abrirAlInicio: boolean }) {
             <img src={urlFoto(foto)} alt="" className="size-24 shrink-0 rounded-xl bg-crema object-contain" />
             <div className="min-w-0">
               <p className="font-medium leading-tight">{producto.nombre}</p>
-              <p className="text-xs text-suave">{producto.sku} · {producto.categorias?.nombre}{producto.precio !== null ? ` · ${moneda(producto.precio)}` : ""}</p>
+              <p className="text-xs text-suave">{producto.sku} · {producto.categorias?.nombre}{producto.precio !== null ? ` · ${moneda(producto.precio)}` : ""}
+                {producto.productos_privado?.costo != null ? ` · costo ${moneda(producto.productos_privado.costo)}` : ""}</p>
               <EstadoChips estado={producto.estado} disponibilidad={producto.disponibilidad} />
             </div>
           </div>

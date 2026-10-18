@@ -29,14 +29,14 @@ Supabase ───────────────────────�
 productos ─┬─< codigos            (barras / proveedor / legado: todos encuentran el mismo artículo)
   │ sku    ├─< imagenes           (varias, ordenadas; la primera es la principal)
   │        ├─< producto_etiquetas >─ etiquetas   (campañas: Día del Niño, Navidad…)
-  │        ├─1 productos_privado  (costo: solo admin)
+  │        ├─1 productos_privado  (costo: lo ve el personal, nunca el público)
   │        ├─< historial_precios  (cada cambio de precio, con el ajuste masivo que lo causó)
   │        └─< movimientos_stock  (etapa 2)
   ├─> categorias
   ├─> marcas          ← aumentos masivos por marca (etapa 3)
   └─> proveedores     ← aumentos por proveedor; lista_proveedores = 23.000 artículos para autocompletar
 
-perfiles (rol: cargador | encargado | admin · estado: pendiente | activo | bloqueado)
+perfiles (rol: empleado | admin · estado: pendiente | activo | bloqueado)
 historial (quién, qué tabla, qué cambió: antes → ahora)
 ajustes_precio (registro de cada aumento masivo, con criterio y %; permite revertir)
 ubicaciones (Local, Depósito… para stock por lugar)
@@ -49,7 +49,7 @@ config (margen, redondeo, admins iniciales)
 
 | Capa | Qué hace |
 |---|---|
-| **RLS en Postgres** (la que importa) | El público no lee tablas: solo las vistas `v_catalogo` y `v_producto`, que muestran lo publicado y sin costos. Un usuario *pendiente* o *bloqueado* no puede nada. Los costos y las listas de proveedores son solo para admin; el personal usa `buscar_en_listas`, que devuelve precio sugerido, no costo. Borrar es solo admin. Siempre queda al menos un admin. |
+| **RLS en Postgres** (la que importa) | El público no lee tablas: solo las vistas `v_catalogo` y `v_producto`, que muestran lo publicado y sin costos. Un usuario *pendiente* o *bloqueado* no puede nada. El personal (empleado o admin) ve costos y listas de proveedores. Solo el admin ve el historial, administra usuarios y borra definitivamente. Siempre queda al menos un admin. Una foto compartida entre artículos (duplicados) solo se borra del storage cuando ya no la usa nadie (`fotos_sin_uso`). |
 | **Dominios separados** | En `www` el panel, el login y `/auth` responden 404; viven solo en `admin.`. Las cookies de sesión son del subdominio `admin` y nunca viajan al público. Opcional: Cloudflare Access delante de `admin.` (docs/CLOUDFLARE.md). |
 | **Panel** | `GuardiaPanel` exige sesión y perfil activo antes de mostrar nada. Igual, sin RLS no habría datos que mostrar. |
 | **Interfaz** | Oculta botones según el rol (`src/lib/permisos.ts`). Es solo comodidad: no es seguridad. |
@@ -87,11 +87,11 @@ e2e/                     pruebas de punta a punta + Supabase de prueba sin Docke
 Ejemplo: **aumento de precios por marca**, que ya tiene la estructura creada.
 
 1. **Migración** (`npm run db:nueva aumentos_por_marca`). Una función `ajustar_precios(criterio jsonb, porcentaje numeric, redondeo int, solo_vista boolean)` que:
-   - verifica `es_encargado()`;
+   - verifica `es_staff()`;
    - con `solo_vista = true` devuelve la lista de artículos con precio actual → nuevo (para revisar antes de aplicar);
    - si se aplica, crea la fila en `ajustes_precio`, hace `set_config('patitos.ajuste_id', …)` y actualiza los precios. El trigger ya guarda cada cambio en `historial_precios`, vinculado al ajuste;
    - `revertir_ajuste(id)` vuelve cada precio al `precio_antes` de ese ajuste.
-2. **Pruebas SQL**: un cargador no puede aplicar ajustes; el redondeo es correcto; revertir deja todo igual.
+2. **Pruebas SQL**: un usuario pendiente no puede aplicar ajustes; el redondeo es correcto; revertir deja todo igual.
 3. **Tipos**: `npm run db:tipos`.
 4. **Pantalla**: `src/app/panel/precios/`. Se elige marca, proveedor o categoría, se pone el %, se ve la vista previa y se confirma.
 5. **Prueba e2e** del flujo.
@@ -101,7 +101,7 @@ Ejemplo: **aumento de precios por marca**, que ya tiene la estructura creada.
 
 | Futuro | Qué ya existe |
 |---|---|
-| **Aumentos masivos** por marca, proveedor o categoría | `marcas`, `proveedores`, `productos.marca_id/proveedor_id`, `ajustes_precio`, `historial_precios` (registra desde el día 1), rol `encargado`, `config.margen/redondeo`. La migración ya asigna marcas por nombre. |
+| **Aumentos masivos** por marca, proveedor o categoría | `marcas`, `proveedores`, `productos.marca_id/proveedor_id`, `ajustes_precio`, `historial_precios` (registra desde el día 1), `config.margen/redondeo`. La migración ya asigna marcas por nombre. |
 | **Stock real** (etapa 2) | `movimientos_stock` (ingreso / venta / ajuste / devolución / conteo / traslado; no se edita ni borra), `ubicaciones`, `productos.controla_stock`. Falta: la función `registrar_movimiento`, el cálculo de disponibilidad cuando `controla_stock` y las pantallas *Ingreso de mercadería* / *Venta rápida* / *Conteo*. |
 | **Filtro por edad** en el catálogo | `edad_desde_meses`, `edad_hasta_meses` (ya se cargan en el editor). |
 | **Campañas** (Día del Niño, Navidad) | `etiquetas` + `producto_etiquetas`; con `visible = true` se pueden mostrar como filtro público. |

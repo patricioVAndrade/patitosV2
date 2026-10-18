@@ -76,6 +76,7 @@ export default async function FichaProducto({ params }: Props) {
               {p.precio_anterior !== null && <span className="text-lg text-suave line-through">{moneda(p.precio_anterior)}</span>}
             </p>
           )}
+          {p.variantes && <p><span className="font-medium">Colores / modelos:</span> {p.variantes}</p>}
           {p.descripcion && <p className="whitespace-pre-line text-suave">{p.descripcion}</p>}
           <BotonWhatsApp p={p} />
           <p className="text-xs text-suave">Código: {p.sku}</p>

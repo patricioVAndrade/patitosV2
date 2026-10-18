@@ -22,6 +22,8 @@ export interface ValoresIniciales {
   imagenes: { ruta_thumb: string; ruta_full: string; ancho: number | null; alto: number | null }[];
   etiquetas: number[];
   costo: number | null;
+  /** Al duplicar: el artículo de origen (se copian sus datos y fotos, no sus códigos) */
+  base?: Producto | null;
   prefill?: { nombre?: string; categoria_id?: number; marca_id?: number | null; marcaTexto?: string; proveedor_id?: number | null; precio?: number | null };
 }
 
@@ -33,36 +35,39 @@ const EDADES = [
 const hoyMas = (d: number) => new Date(Date.now() + d * 86400000).toISOString().slice(0, 10);
 const num = (v: string) => (v.trim() === "" ? null : Number(v.replace(",", ".")));
 
-export function EditorProducto({ iniciales, listas, aviso, continuo, esAdmin }: {
+export function EditorProducto({ iniciales, listas, aviso, continuo, verCostos, puedeBorrar }: {
   iniciales: ValoresIniciales;
   listas: { categorias: Opcion[]; marcas: Opcion[]; proveedores: Opcion[]; etiquetas: Opcion[] };
   aviso: string | null;
   continuo: boolean;
-  esAdmin: boolean;
+  verCostos: boolean;
+  puedeBorrar: boolean;
 }) {
   const supabase = supabaseNavegador();
   const router = useRouter();
   const { avisar } = usePanel();
   const p = iniciales.producto;
+  const b = p ?? iniciales.base ?? null; // de dónde salen los valores iniciales (el mismo artículo o el que se duplica)
   const pre = iniciales.prefill ?? {};
 
   const ultimaCategoria = () => { try { return Number(localStorage.getItem("ultimaCategoria")) || undefined; } catch { return undefined; } };
-  const [nombre, setNombre] = useState(p?.nombre ?? pre.nombre ?? "");
-  const [descripcion, setDescripcion] = useState(p?.descripcion ?? "");
-  const [categoriaId, setCategoriaId] = useState<number>(p?.categoria_id ?? pre.categoria_id ?? listas.categorias.find((c) => c.nombre === "Varios")?.id ?? listas.categorias[0]?.id ?? 0);
+  const [nombre, setNombre] = useState(b?.nombre ?? pre.nombre ?? "");
+  const [variantes, setVariantes] = useState(b?.variantes ?? "");
+  const [descripcion, setDescripcion] = useState(b?.descripcion ?? "");
+  const [categoriaId, setCategoriaId] = useState<number>(b?.categoria_id ?? pre.categoria_id ?? listas.categorias.find((c) => c.nombre === "Varios")?.id ?? listas.categorias[0]?.id ?? 0);
   const [marcaTexto, setMarcaTexto] = useState(
-    listas.marcas.find((m) => m.id === (p?.marca_id ?? pre.marca_id))?.nombre ?? pre.marcaTexto ?? "",
+    listas.marcas.find((m) => m.id === (b?.marca_id ?? pre.marca_id))?.nombre ?? pre.marcaTexto ?? "",
   );
-  const [proveedorId, setProveedorId] = useState<number | null>(p?.proveedor_id ?? pre.proveedor_id ?? null);
-  const [precio, setPrecio] = useState(p?.precio?.toString() ?? pre.precio?.toString() ?? "");
-  const [precioAnterior, setPrecioAnterior] = useState(p?.precio_anterior?.toString() ?? "");
-  const [mostrarPrecio, setMostrarPrecio] = useState(p?.mostrar_precio ?? false);
-  const [enOferta, setEnOferta] = useState(p?.en_oferta ?? false);
-  const [estado, setEstado] = useState<EstadoProducto>(p?.estado ?? "publicado");
-  const [disponibilidad, setDisponibilidad] = useState<Disponibilidad>(p?.disponibilidad ?? "disponible");
+  const [proveedorId, setProveedorId] = useState<number | null>(b?.proveedor_id ?? pre.proveedor_id ?? null);
+  const [precio, setPrecio] = useState(b?.precio?.toString() ?? pre.precio?.toString() ?? "");
+  const [precioAnterior, setPrecioAnterior] = useState(b?.precio_anterior?.toString() ?? "");
+  const [mostrarPrecio, setMostrarPrecio] = useState(b?.mostrar_precio ?? false);
+  const [enOferta, setEnOferta] = useState(b?.en_oferta ?? false);
+  const [estado, setEstado] = useState<EstadoProducto>(b?.estado ?? "publicado");
+  const [disponibilidad, setDisponibilidad] = useState<Disponibilidad>(b?.disponibilidad ?? "disponible");
   const [nuevoHasta, setNuevoHasta] = useState(p ? p.nuevo_hasta ?? "" : hoyMas(30));
-  const [edadDesde, setEdadDesde] = useState(p?.edad_desde_meses?.toString() ?? "");
-  const [edadHasta, setEdadHasta] = useState(p?.edad_hasta_meses?.toString() ?? "");
+  const [edadDesde, setEdadDesde] = useState(b?.edad_desde_meses?.toString() ?? "");
+  const [edadHasta, setEdadHasta] = useState(b?.edad_hasta_meses?.toString() ?? "");
   const [codigos, setCodigos] = useState<CodigoEd[]>(iniciales.codigos);
   const [nuevoCodigo, setNuevoCodigo] = useState("");
   const [etiquetas, setEtiquetas] = useState<number[]>(iniciales.etiquetas);
@@ -73,11 +78,11 @@ export function EditorProducto({ iniciales, listas, aviso, continuo, esAdmin }: 
   const [errores, setErrores] = useState<string[]>([]);
   const [escanerAbierto, setEscanerAbierto] = useState(false);
   const [sugerencias, setSugerencias] = useState<ItemLista[]>([]);
-  const [masOpciones, setMasOpciones] = useState(!!p);
+  const [masOpciones, setMasOpciones] = useState(!!b);
 
   // Nuevo artículo: recordar la última categoría usada
   useEffect(() => {
-    if (!p && !pre.categoria_id) {
+    if (!b && !pre.categoria_id) {
       const u = ultimaCategoria();
       if (u && listas.categorias.some((c) => c.id === u)) setCategoriaId(u);
     }
@@ -101,6 +106,7 @@ export function EditorProducto({ iniciales, listas, aviso, continuo, esAdmin }: 
     if (s.marca && !marcaTexto) setMarcaTexto(s.marca);
     setProveedorId(s.proveedor_id);
     if (s.precio_sugerido !== null && !precio) setPrecio(String(s.precio_sugerido));
+    if (s.costo !== null && !costo) setCosto(String(s.costo));
     if (!codigos.some((c) => c.codigo === s.codigo)) setCodigos((c) => [...c, { codigo: s.codigo, tipo: "proveedor", proveedor_id: s.proveedor_id }]);
     setSugerencias([]);
   }
@@ -167,6 +173,7 @@ export function EditorProducto({ iniciales, listas, aviso, continuo, esAdmin }: 
     const borrador = {
       nombre: nombre.trim().replace(/\s+/g, " ").toUpperCase(),
       descripcion: descripcion.trim() || null,
+      variantes: variantes.trim().replace(/\s+/g, " ") || null,
       categoria_id: categoriaId,
       marca_id: null as number | null,
       proveedor_id: proveedorId,
@@ -203,7 +210,7 @@ export function EditorProducto({ iniciales, listas, aviso, continuo, esAdmin }: 
         }
       }
       // 2) guardar todo en una sola transacción
-      const datos = { ...v.data, marca_id, id: p?.id ?? null, imagenes: lista, ...(esAdmin ? { costo: num(costo) } : {}) };
+      const datos = { ...v.data, marca_id, id: p?.id ?? null, imagenes: lista, ...(verCostos ? { costo: num(costo) } : {}) };
       const { data, error } = await supabase.rpc("guardar_producto", { datos });
       if (error) throw error;
       // 3) liberar espacio: borrar del storage las fotos que se quitaron
@@ -228,7 +235,10 @@ export function EditorProducto({ iniciales, listas, aviso, continuo, esAdmin }: 
     if (!p || !confirm(`¿Eliminar definitivamente "${p.nombre}"?\n\nSi solo querés que no se vea, usá "Oculto" o "Archivado" (se puede deshacer).`)) return;
     const { error } = await supabase.from("productos").delete().eq("id", p.id);
     if (error) return avisar(mensajeError(error), "error");
-    await borrarFotos(supabase, fotos.flatMap((f) => (f.existente ? [f.existente.ruta_thumb, f.existente.ruta_full] : [])));
+    // Solo se borran del storage las fotos que no usa otro artículo (por ejemplo, un duplicado)
+    const rutas = fotos.flatMap((f) => (f.existente ? [f.existente.ruta_thumb, f.existente.ruta_full] : []));
+    const { data: sinUso } = await supabase.rpc("fotos_sin_uso", { p_rutas: rutas });
+    await borrarFotos(supabase, sinUso ?? []);
     avisar("Artículo eliminado");
     router.push("/panel/articulos");
   }
@@ -241,10 +251,18 @@ export function EditorProducto({ iniciales, listas, aviso, continuo, esAdmin }: 
           <div className="flex items-center gap-2 text-sm">
             <span className="font-mono text-suave">{p.sku}</span>
             {p.estado === "publicado" && <a href={`${env.sitioUrl}${urlProducto(p)}`} target="_blank" rel="noopener" className="btn-claro px-3 py-1 text-xs">Ver en la web</a>}
+            <button type="button" onClick={() => router.push(`/panel/articulos/nuevo?desde=${p.id}`)} className="btn-claro px-3 py-1 text-xs" title="Crear otro artículo con estos datos y fotos (por ejemplo, otro color)">
+              Duplicar
+            </button>
           </div>
         )}
       </div>
 
+      {iniciales.base && !p && (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          Copia de <strong>{iniciales.base.sku}</strong>: cambiá lo que haga falta (nombre, color, código) y guardá. Las fotos se comparten, no ocupan espacio de más.
+        </p>
+      )}
       {aviso && <p className="rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900">{aviso}</p>}
       {errores.length > 0 && (
         <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
@@ -296,12 +314,17 @@ export function EditorProducto({ iniciales, listas, aviso, continuo, esAdmin }: 
               {sugerencias.map((s) => (
                 <li key={`${s.proveedor_id}-${s.codigo}`}>
                   <button type="button" onClick={() => usarSugerencia(s)} className="w-full px-3 py-2 text-left text-sm hover:bg-crema">
-                    {s.nombre} <span className="text-suave">· {s.proveedor}{s.precio_sugerido ? ` · $${s.precio_sugerido.toLocaleString("es-AR")}` : ""}</span>
+                    {s.nombre} <span className="text-suave">· {s.proveedor}{s.costo ? ` · costo $${s.costo.toLocaleString("es-AR")}` : ""}{s.precio_sugerido ? ` · sugerido $${s.precio_sugerido.toLocaleString("es-AR")}` : ""}</span>
                   </button>
                 </li>
               ))}
             </ul>
           )}
+        </div>
+
+        <div>
+          <label htmlFor="variantes" className="etiqueta-campo">Colores / modelos <span className="font-normal">(opcional)</span></label>
+          <input id="variantes" value={variantes} onChange={(e) => setVariantes(e.target.value)} className="campo" maxLength={300} placeholder="Ej: rojo, azul · modelos surtidos" autoComplete="off" />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -425,9 +448,9 @@ export function EditorProducto({ iniciales, listas, aviso, continuo, esAdmin }: 
               </div>
             </fieldset>
           )}
-          {esAdmin && (
+          {verCostos && (
             <div className="rounded-xl border border-dashed border-borde p-3">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-suave">Solo admin · no se publica</p>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-suave">Interno · no se publica</p>
               <label htmlFor="costo" className="etiqueta-campo">Costo</label>
               <div className="flex gap-2">
                 <input id="costo" value={costo} onChange={(e) => setCosto(e.target.value)} inputMode="decimal" className="campo" />
@@ -445,7 +468,7 @@ export function EditorProducto({ iniciales, listas, aviso, continuo, esAdmin }: 
 
       {/* ACCIONES */}
       <div className="sticky bottom-[calc(64px+env(safe-area-inset-bottom))] z-30 -mx-4 flex gap-2 border-t border-borde bg-crema/95 px-4 py-3 backdrop-blur md:bottom-0">
-        {p && esAdmin && (
+        {p && puedeBorrar && (
           <button type="button" onClick={eliminar} className="btn-claro text-red-600" aria-label="Eliminar"><IconoBasura /></button>
         )}
         {!p && !continuo && (

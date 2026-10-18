@@ -10,7 +10,9 @@ Qué hace:
   · Corrige: códigos "74711.0", costos de relleno (0, 1…), costos mal leídos (4.728 → 4728), categorías.
   · Comprime las fotos (WebP ~20 KB + ~90 KB) y las sube.
   · Guarda el costo aparte (solo lo ven los admin) y el precio de venta = costo × 2 redondeado.
-  · Sube la lista completa de proveedores (≈23.000) para autocompletar al cargar.
+  · Migra SOLO lo publicado (estado SI): se arranca limpio. Las listas de proveedores (≈23.000)
+    se suben solo con --con-listas (productos_general.db se usa igual para reconocer el proveedor).
+  · Las fotos quedan cuadradas, fondo blanco y centradas (igual que las que se suben desde el celular).
   · Genera informe_migracion.csv con todo lo que conviene revisar (duplicados, sin foto, sin precio…).
 
 Uso:
@@ -36,7 +38,7 @@ from dataclasses import dataclass, field
 from datetime import date, timedelta
 
 import pandas as pd
-from PIL import Image, ImageOps
+from PIL import Image, ImageChops, ImageOps
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 BUCKET = "productos"
@@ -156,6 +158,34 @@ def indexar_fotos(carpetas: list[str]) -> dict[str, str]:
     return indice
 
 
+def area_util(im: Image.Image, umbral: int = 242) -> tuple[int, int, int, int] | None:
+    """Rectángulo del producto ignorando bordes casi blancos (igual que src/lib/encuadre.ts)."""
+    canales = [c.point(lambda v: 255 if v < umbral else 0) for c in im.split()[:3]]
+    mascara = ImageChops.lighter(ImageChops.lighter(canales[0], canales[1]), canales[2])
+    return mascara.getbbox()
+
+
+def lienzo_cuadrado(w: int, h: int, lado: int, margen: float = 0.05) -> tuple[int, int, int, int, int]:
+    util = round(lado * (1 - 2 * margen))
+    escala = min(1.0, util / max(w, h))  # nunca agranda
+    nw, nh = max(1, round(w * escala)), max(1, round(h * escala))
+    lienzo = max(1, round(max(nw, nh) / (1 - 2 * margen)))
+    return lienzo, nw, nh, round((lienzo - nw) / 2), round((lienzo - nh) / 2)
+
+
+def estandarizar(im: Image.Image, lado: int) -> Image.Image:
+    """Foto cuadrada, fondo blanco, producto centrado y sin bordes blancos de más."""
+    caja = area_util(im)
+    if caja:
+        x0, y0, x1, y1 = max(0, caja[0] - 2), max(0, caja[1] - 2), min(im.width, caja[2] + 2), min(im.height, caja[3] + 2)
+        if (x1 - x0) * (y1 - y0) <= im.width * im.height * 0.97:
+            im = im.crop((x0, y0, x1, y1))
+    lienzo, nw, nh, x, y = lienzo_cuadrado(im.width, im.height, lado)
+    salida = Image.new("RGB", (lienzo, lienzo), (255, 255, 255))
+    salida.paste(im.resize((nw, nh), Image.LANCZOS), (x, y))
+    return salida
+
+
 def comprimir(ruta: str) -> tuple[dict[str, bytes], int, int]:
     with Image.open(ruta) as im:
         im = ImageOps.exif_transpose(im)
@@ -168,8 +198,7 @@ def comprimir(ruta: str) -> tuple[dict[str, bytes], int, int]:
             im = im.convert("RGB")
         salida, ancho, alto = {}, 0, 0
         for suf, (lado, calidad) in TAMANIOS.items():
-            c = im.copy()
-            c.thumbnail((lado, lado), Image.LANCZOS)
+            c = estandarizar(im, lado)
             if suf == "f":
                 ancho, alto = c.size
             b = io.BytesIO()
@@ -330,7 +359,10 @@ def main():
     ap.add_argument("--db", required=True, help="productos_general.db (listas de proveedores)")
     ap.add_argument("--fotos", nargs="*", default=[], help="Carpetas donde buscar las fotos")
     ap.add_argument("--prueba", action="store_true", help="No sube nada: comprime en ./salida_prueba y genera el informe")
-    ap.add_argument("--sin-maestro", action="store_true", help="No subir las listas de proveedores")
+    ap.add_argument("--con-listas", action="store_true",
+                    help="Subir también las listas de proveedores (≈23.000). Por defecto NO: se arranca limpio")
+    ap.add_argument("--incluir-ocultos", action="store_true",
+                    help="Migrar también los artículos con estado NO (ocultos). Por defecto solo los publicados")
     args = ap.parse_args()
 
     for r in [args.excel, args.db]:
@@ -347,6 +379,10 @@ def main():
 
     print("📂 Leyendo el Excel del catálogo…")
     arts = leer_excel(args.excel, marcas, prov_por_codigo)
+    if not args.incluir_ocultos:
+        ocultos = sum(1 for a in arts if not a.visible)
+        arts = [a for a in arts if a.visible]
+        print(f"   Solo publicados: se dejan afuera {ocultos} ocultos (usá --incluir-ocultos para traerlos)")
     print(f"   {len(arts):,} artículos · con marca detectada: {sum(1 for a in arts if a.marca):,} · "
           f"con proveedor: {sum(1 for a in arts if a.proveedor):,}")
 
@@ -362,7 +398,7 @@ def main():
         faltan = {a.categoria_slug for a in arts} - set(cat_id)
         if faltan:
             sys.exit(f"❌ Faltan categorías en la base: {faltan}")
-        nombres_marcas = sorted({a.marca for a in arts if a.marca} | {m["marca"] for m in maestro if m["marca"]})
+        nombres_marcas = sorted({a.marca for a in arts if a.marca} | ({m["marca"] for m in maestro if m["marca"]} if args.con_listas else set()))
         sb.insertar("marcas", [{"nombre": m, "slug": slugify(m)} for m in nombres_marcas], conflicto="slug", ignorar=True)
         for m in sb.leer("marcas", "id,slug"):
             marca_id[m["slug"]] = m["id"]
@@ -458,7 +494,7 @@ def main():
         sb.insertar("productos_privado", privados)
         print(f"   ✔ {len(guardados):,} artículos · {len(codigos):,} códigos · {len(imagenes):,} fotos · {len(privados):,} costos")
 
-    if sb and not args.sin_maestro:
+    if sb and args.con_listas:
         print("⬆️  Subiendo listas de proveedores (autocompletar)…")
         sb.insertar("lista_proveedores", [{
             "proveedor_id": prov_id[m["proveedor"]], "codigo": m["codigo"], "nombre": m["nombre"],

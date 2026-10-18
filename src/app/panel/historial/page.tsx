@@ -1,6 +1,9 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { puede } from "@/lib/permisos";
+import { usePanel } from "@/componentes/panel/ContextoPanel";
 import { supabaseNavegador } from "@/lib/supabase/cliente";
 import { useCargar } from "@/componentes/panel/useCargar";
 import { fechaHora } from "@/lib/formato";
@@ -32,7 +35,12 @@ function detalle(tabla: string, accion: string, cambios: Json | null, nombres: N
 
 export default function PaginaHistorial() {
   const [pag, setPag] = useState(1);
+  const { perfil } = usePanel();
+  const router = useRouter();
+  const habilitado = puede.verHistorial(perfil.rol);
+  useEffect(() => { if (!habilitado) router.replace("/panel"); }, [habilitado, router]);
   const { datos } = useCargar(async () => {
+    if (!habilitado) return null;
     const supabase = supabaseNavegador();
     const [h, cats, marcas, provs] = await Promise.all([
       supabase.from("historial").select("*").order("fecha", { ascending: false }).range((pag - 1) * POR_PAGINA, pag * POR_PAGINA - 1),
@@ -42,7 +50,7 @@ export default function PaginaHistorial() {
     ]);
     const mapa = (l: { id: number; nombre: string }[] | null) => Object.fromEntries((l ?? []).map((x) => [String(x.id), x.nombre]));
     return { filas: h.data ?? [], nombres: { categoria_id: mapa(cats.data), marca_id: mapa(marcas.data), proveedor_id: mapa(provs.data) } as Nombres };
-  }, [pag]);
+  }, [pag, habilitado]);
   if (!datos) return <p className="text-suave">Cargando…</p>;
   const { filas, nombres } = datos;
 

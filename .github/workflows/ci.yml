@@ -91,7 +91,7 @@ jobs:
         run: |
           pip install -r herramientas/requirements.txt
           SUPABASE_URL=http://127.0.0.1:54321 SUPABASE_SERVICE_KEY=$(cat e2e/.tmp/service_key) \
-            python herramientas/migrar.py --excel e2e/datos/stock_muestra.xlsx --db e2e/datos/proveedores_muestra.db --fotos e2e/fotos
+            python herramientas/migrar.py --excel e2e/datos/stock_muestra.xlsx --db e2e/datos/proveedores_muestra.db --fotos e2e/fotos --con-listas
       - name: Compilar y levantar la app
         run: |
           export NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321

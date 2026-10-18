@@ -3,7 +3,8 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
-from migrar import a_numero, corregir_miles, detectar_marca, limpiar_codigo, precio_venta, slugify  # noqa: E402
+from migrar import a_numero, corregir_miles, detectar_marca, estandarizar, lienzo_cuadrado, limpiar_codigo, precio_venta, slugify  # noqa: E402
+from PIL import Image, ImageDraw  # noqa: E402
 
 
 def test_codigos():
@@ -29,6 +30,17 @@ def test_marcas_y_slugs():
     assert slugify("Pelota de Fútbol Nº5") == "pelota-de-futbol-n-5"
 
 
+def test_foto_cuadrada():
+    assert lienzo_cuadrado(1600, 800, 1000) == (1000, 900, 450, 50, 275)  # igual que encuadre.ts
+    im = Image.new("RGB", (1600, 900), "white")
+    ImageDraw.Draw(im).rectangle((700, 200, 899, 699), fill=(200, 30, 30))  # producto de 200x500 centrado a medias
+    out = estandarizar(im, 400)
+    assert out.width == out.height == 400
+    caja = Image.eval(out, lambda v: 255 - v).getbbox()  # zona no blanca
+    alto = caja[3] - caja[1]
+    assert 350 <= alto <= 365, alto  # el producto ocupa ~90% (margen 5% arriba y abajo)
+
+
 if __name__ == "__main__":
-    test_codigos(); test_numeros_y_precios(); test_marcas_y_slugs()
+    test_codigos(); test_numeros_y_precios(); test_marcas_y_slugs(); test_foto_cuadrada()
     print("✔ pruebas de migración OK")

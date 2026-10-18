@@ -15,11 +15,6 @@ returns boolean language sql stable security definer set search_path = '' as $$
   select exists (select 1 from public.perfiles where id = auth.uid() and estado = 'activo')
 $$;
 
-create or replace function public.es_encargado()
-returns boolean language sql stable security definer set search_path = '' as $$
-  select exists (select 1 from public.perfiles where id = auth.uid() and estado = 'activo' and rol in ('encargado', 'admin'))
-$$;
-
 create or replace function public.es_admin()
 returns boolean language sql stable security definer set search_path = '' as $$
   select exists (select 1 from public.perfiles where id = auth.uid() and estado = 'activo' and rol = 'admin')
@@ -43,7 +38,7 @@ begin
     lower(new.email),
     coalesce(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
     new.raw_user_meta_data->>'avatar_url',
-    case when v_es_admin then 'admin' else 'cargador' end,
+    case when v_es_admin then 'admin' else 'empleado' end,
     case when v_es_admin then 'activo' else 'pendiente' end
   )
   on conflict (id) do nothing;

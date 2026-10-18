@@ -102,8 +102,17 @@ test.describe("Panel", () => {
     await emp.reload();
     await emp.waitForLoadState("networkidle");
     await expect(emp).toHaveURL(/\/panel$/);
-    // una cargadora no ve Usuarios
+    // una empleada no ve Usuarios ni Historial (logs)…
     await expect(emp.getByRole("link", { name: "Usuarios" })).toHaveCount(0);
+    await expect(emp.getByRole("link", { name: "Historial" })).toHaveCount(0);
+    // …pero sí ve y carga costos; no puede eliminar definitivamente
+    await emp.getByLabel("Código").fill("WIL225199");
+    await emp.getByRole("button", { name: "Buscar" }).click();
+    await expect(emp.getByTestId("resultado")).toContainText("costo");
+    await emp.getByTestId("resultado").getByRole("link", { name: /Editar/ }).click();
+    await emp.waitForLoadState("networkidle");
+    await expect(emp.getByLabel("Costo")).toBeVisible();
+    await expect(emp.getByRole("button", { name: "Eliminar" })).toHaveCount(0);
     await ctxE.close();
     await ctxA.close();
   });
@@ -148,6 +157,39 @@ test.describe("Panel", () => {
     const foto = await page.request.get(src!);
     expect(foto.status()).toBe(200);
     expect((await foto.body()).length).toBeLessThan(60_000);
+    // la foto queda cuadrada aunque la original no lo sea
+    const lados = await page.evaluate(async (url) => {
+      const img = new Image();
+      img.src = url;
+      await img.decode();
+      return [img.naturalWidth, img.naturalHeight];
+    }, src!);
+    expect(lados[0]).toBe(lados[1]);
+  });
+
+  test("duplicar un artículo (otro color) comparte la foto y los colores se ven en la web", async ({ page }) => {
+    test.skip(FOTOS.length < 1, "Definí E2E_FOTOS con rutas de imágenes");
+    await ingresarCon(page, ADMIN, "Pato");
+    await ir(page, "/panel/articulos");
+    await page.getByLabel("Buscar artículos").fill("auto de prueba e2e");
+    await page.getByTestId("lista-articulos").getByRole("link").first().click();
+    await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: "Duplicar" }).click();
+    await expect(page.getByText(/Copia de PB-\d{6}/)).toBeVisible();
+    await expect(page.getByLabel("Nombre *")).toHaveValue("AUTO DE PRUEBA E2E");
+    await expect(page.getByTestId("codigos")).not.toContainText("7790000000017"); // los códigos no se copian
+    await page.getByLabel("Nombre *").fill("Auto de prueba e2e azul");
+    await page.getByLabel("Colores / modelos (opcional)").fill("azul, celeste");
+    await page.getByRole("button", { name: "Publicar" }).click();
+    await expect(page.getByText(/Publicado ✔ PB-\d{6}/)).toBeVisible();
+
+    await ir(page, "/?q=auto%20de%20prueba%20e2e");
+    await expect(page.locator("article")).toHaveCount(2);
+    const fotos = await page.locator("article img").evaluateAll((imgs) => imgs.map((i) => (i as HTMLImageElement).src));
+    expect(fotos[0]).toBe(fotos[1]); // misma foto, no se subió dos veces
+    await page.locator("article", { hasText: "AZUL" }).locator("a").nth(1).click();
+    await expect(page.getByText("Colores / modelos:")).toBeVisible();
+    await expect(page.getByText("azul, celeste")).toBeVisible();
   });
 
   test("código de una lista de proveedor → nombre y precio sugerido completados", async ({ page }) => {

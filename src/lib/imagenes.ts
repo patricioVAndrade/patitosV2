@@ -1,9 +1,11 @@
 "use client";
 // Compresión de fotos EN EL CELULAR, antes de subirlas.
+// Se estandarizan: cuadradas, fondo blanco, producto centrado y sin bordes blancos de más.
 // Una foto de 3-5 MB queda en ~20 KB (miniatura) + ~90 KB (zoom): el 1 GB gratis
 // de Supabase alcanza para miles de artículos y la web carga rápido.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./supabase/database.types";
+import { areaUtil, lienzoCuadrado, type Rect } from "./encuadre";
 
 const BUCKET = "productos";
 const TAMANIOS = { thumb: { lado: 400, calidad: 0.72 }, full: { lado: 1000, calidad: 0.78 } } as const;
@@ -44,32 +46,53 @@ function aBlob(canvas: HTMLCanvasElement, tipo: string, calidad: number): Promis
   return new Promise((ok) => canvas.toBlob(ok, tipo, calidad));
 }
 
-async function redimensionar(fuente: ImageBitmap | HTMLImageElement, lado: number, calidad: number) {
-  const w0 = fuente.width;
-  const h0 = fuente.height;
-  const escala = Math.min(1, lado / Math.max(w0, h0));
-  const w = Math.round(w0 * escala);
-  const h = Math.round(h0 * escala);
+/** Recorta bordes blancos sobrantes (se analiza una copia chica para que sea rápido). */
+function calcularRecorte(fuente: ImageBitmap | HTMLImageElement): Rect {
+  const completo = { x: 0, y: 0, w: fuente.width, h: fuente.height };
+  const escala = Math.min(1, 240 / Math.max(fuente.width, fuente.height));
+  const aw = Math.max(1, Math.round(fuente.width * escala));
+  const ah = Math.max(1, Math.round(fuente.height * escala));
+  const c = document.createElement("canvas");
+  c.width = aw;
+  c.height = ah;
+  const ctx = c.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return completo;
+  ctx.drawImage(fuente, 0, 0, aw, ah);
+  const area = areaUtil(ctx.getImageData(0, 0, aw, ah).data, aw, ah);
+  if (!area) return completo;
+  // margen de 1 píxel de análisis para no "comerse" el borde del producto
+  const x = Math.max(0, (area.x - 1) / escala);
+  const y = Math.max(0, (area.y - 1) / escala);
+  const w = Math.min(fuente.width - x, (area.w + 2) / escala);
+  const h = Math.min(fuente.height - y, (area.h + 2) / escala);
+  // si el recorte es casi igual a la foto, no vale la pena
+  return w * h > fuente.width * fuente.height * 0.97 ? completo : { x, y, w, h };
+}
+
+/** Foto final: cuadrada, fondo blanco, producto centrado con margen parejo. */
+async function generar(fuente: ImageBitmap | HTMLImageElement, recorte: Rect, lado: number, calidad: number) {
+  const l = lienzoCuadrado(recorte, lado);
   const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
+  canvas.width = l.lienzo;
+  canvas.height = l.lienzo;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("El navegador no permite procesar imágenes");
-  ctx.fillStyle = "#ffffff"; // fondo blanco para PNG transparentes
-  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = "#ffffff"; // fondo blanco (también para PNG transparentes)
+  ctx.fillRect(0, 0, l.lienzo, l.lienzo);
   ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(fuente, 0, 0, w, h);
+  ctx.drawImage(fuente, recorte.x, recorte.y, recorte.w, recorte.h, l.x, l.y, l.w, l.h);
   let blob = await aBlob(canvas, "image/webp", calidad);
   // Safari viejo no genera WebP (devuelve PNG): usamos JPEG
   if (!blob || blob.type !== "image/webp") blob = await aBlob(canvas, "image/jpeg", Math.min(calidad + 0.05, 0.9));
   if (!blob) throw new Error("No se pudo comprimir la imagen");
-  return { blob, w, h };
+  return { blob, w: l.lienzo, h: l.lienzo };
 }
 
 export async function comprimirFoto(file: File | Blob): Promise<FotoComprimida> {
   const fuente = await abrir(file);
-  const t = await redimensionar(fuente, TAMANIOS.thumb.lado, TAMANIOS.thumb.calidad);
-  const f = await redimensionar(fuente, TAMANIOS.full.lado, TAMANIOS.full.calidad);
+  const recorte = calcularRecorte(fuente);
+  const t = await generar(fuente, recorte, TAMANIOS.thumb.lado, TAMANIOS.thumb.calidad);
+  const f = await generar(fuente, recorte, TAMANIOS.full.lado, TAMANIOS.full.calidad);
   if ("close" in fuente) fuente.close();
   return { thumb: t.blob, full: f.blob, ancho: f.w, alto: f.h, previa: URL.createObjectURL(t.blob), pesoOriginal: file.size };
 }

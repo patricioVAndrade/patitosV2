@@ -12,7 +12,7 @@ function Inicio() {
   const tarjetas = r
     ? [
         { n: r.publicados, t: "Publicados", href: "/panel/articulos" },
-        { n: r.hoy, t: "Cargados hoy", href: "/panel/historial" },
+        { n: r.hoy, t: "Cargados hoy", href: "/panel/articulos" },
         { n: r.agotados, t: "Agotados", href: "/panel/articulos?f=agotados" },
         { n: r.sin_foto, t: "Sin foto", href: "/panel/articulos?f=sinfoto" },
         { n: r.sin_marca, t: "Sin marca", href: "/panel/articulos?f=sinmarca" },

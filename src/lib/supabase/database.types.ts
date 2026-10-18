@@ -13,7 +13,7 @@ type Tabla<Row, Requeridos extends keyof Row = never> = {
 
 export type Disponibilidad = "disponible" | "pocas" | "agotado";
 export type EstadoProducto = "borrador" | "publicado" | "archivado";
-export type Rol = "cargador" | "encargado" | "admin";
+export type Rol = "empleado" | "admin";
 export type EstadoPerfil = "pendiente" | "activo" | "bloqueado";
 export type TipoCodigo = "barras" | "proveedor" | "legado";
 
@@ -23,6 +23,7 @@ export type Producto = {
   nombre: string;
   slug: string;
   descripcion: string | null;
+  variantes: string | null;
   categoria_id: number;
   marca_id: number | null;
   proveedor_id: number | null;
@@ -131,6 +132,7 @@ export type ItemCatalogo = {
 
 export type FichaProducto = ItemCatalogo & {
   descripcion: string | null;
+  variantes: string | null;
   imagenes: { thumb: string; full: string; ancho: number | null; alto: number | null }[];
   etiquetas: string[];
 }
@@ -142,6 +144,7 @@ export type ItemLista = {
   marca: string | null;
   proveedor_id: number;
   proveedor: string;
+  costo: number | null;
   precio_sugerido: number | null;
   ya_cargado: boolean;
 }
@@ -183,6 +186,7 @@ export type Database = {
         Returns: { publicados: number; borradores: number; archivados: number; agotados: number; sin_foto: number; sin_marca: number; hoy: number };
       };
       precio_sugerido: { Args: { p_costo: number }; Returns: number | null };
+      fotos_sin_uso: { Args: { p_rutas: string[] }; Returns: string[] };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

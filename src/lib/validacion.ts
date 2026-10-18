@@ -8,6 +8,7 @@ export const esquemaProducto = z
   .object({
     nombre: z.string().trim().min(2, "El nombre es obligatorio (mínimo 2 letras)").max(200, "Nombre demasiado largo"),
     descripcion: z.string().max(4000).nullable(),
+    variantes: z.string().max(300, "Colores/modelos: máximo 300 letras").nullable(),
     categoria_id: z.number().int().positive("Elegí una categoría"),
     marca_id: z.number().int().positive().nullable(),
     proveedor_id: z.number().int().positive().nullable(),

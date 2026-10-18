@@ -38,13 +38,13 @@ create table public.perfiles (
   email       text,
   nombre      text not null default '',
   avatar_url  text,
-  rol         text not null default 'cargador' check (rol in ('cargador', 'encargado', 'admin')),
+  rol         text not null default 'empleado' check (rol in ('empleado', 'admin')),
   estado      text not null default 'pendiente' check (estado in ('pendiente', 'activo', 'bloqueado')),
   creado      timestamptz not null default now(),
   actualizado timestamptz not null default now()
 );
 comment on column public.perfiles.rol is
-  'cargador: carga/edita artículos · encargado: + precios masivos y stock (futuro) · admin: todo, usuarios y costos';
+  'empleado: todo el trabajo diario (cargar, publicar, costos, precios) · admin: además historial, usuarios y borrar definitivo';
 
 -- ---------------------------------------------------------------------
 -- Clasificación: categorías, marcas, proveedores, etiquetas
@@ -95,6 +95,7 @@ create table public.productos (
   nombre           text not null check (char_length(btrim(nombre)) between 2 and 200),
   slug             text not null default '',
   descripcion      text check (char_length(descripcion) <= 4000),
+  variantes        text check (char_length(variantes) <= 300),   -- "rojo, azul" / "modelos surtidos" (texto libre)
   categoria_id     smallint not null references public.categorias(id),
   marca_id         integer references public.marcas(id) on delete set null,
   proveedor_id     smallint references public.proveedores(id) on delete set null,  -- proveedor principal
@@ -112,7 +113,7 @@ create table public.productos (
   edad_desde_meses smallint check (edad_desde_meses between 0 and 1200),
   edad_hasta_meses smallint check (edad_hasta_meses between 0 and 1200),
   -- búsqueda
-  busqueda         text generated always as (public.normalizar(nombre || ' ' || sku || ' ' || coalesce(descripcion, ''))) stored,
+  busqueda         text generated always as (public.normalizar(nombre || ' ' || sku || ' ' || coalesce(variantes, '') || ' ' || coalesce(descripcion, ''))) stored,
   -- auditoría
   creado           timestamptz not null default now(),
   actualizado      timestamptz not null default now(),
@@ -158,7 +159,7 @@ create table public.producto_etiquetas (
   primary key (producto_id, etiqueta_id)
 );
 
--- Costos: solo admin. Separado para que nunca viaje al catálogo público.
+-- Costos: los ve el personal (empleados y admin). Separado para que nunca viaje al catálogo público.
 create table public.productos_privado (
   producto_id  uuid primary key references public.productos(id) on delete cascade,
   costo        numeric(12,2) check (costo >= 0),

@@ -7,9 +7,8 @@ import type { EstadoPerfil, Perfil, Rol } from "@/lib/supabase/database.types";
 import { usePanel } from "./ContextoPanel";
 
 const ROLES: { v: Rol; t: string; d: string }[] = [
-  { v: "cargador", t: "Cargador", d: "Carga y edita artículos" },
-  { v: "encargado", t: "Encargado", d: "+ categorías, marcas y precios masivos" },
-  { v: "admin", t: "Admin", d: "Todo: usuarios, costos y borrar" },
+  { v: "empleado", t: "Empleado", d: "Todo el trabajo diario: cargar, publicar, costos y precios" },
+  { v: "admin", t: "Admin", d: "Además: historial, usuarios y borrar definitivamente" },
 ];
 
 export function GestionUsuarios({ iniciales, miId }: { iniciales: Perfil[]; miId: string }) {
@@ -42,7 +41,7 @@ export function GestionUsuarios({ iniciales, miId }: { iniciales: Perfil[]; miId
       </div>
       {u.estado === "pendiente" ? (
         <div className="flex gap-2">
-          <button onClick={() => cambiar(u, { estado: "activo", rol: "cargador" })} className="btn-primario px-3 py-1.5 text-sm">Aprobar</button>
+          <button onClick={() => cambiar(u, { estado: "activo", rol: "empleado" })} className="btn-primario px-3 py-1.5 text-sm">Aprobar</button>
           <button onClick={() => cambiar(u, { estado: "bloqueado" })} className="btn-claro px-3 py-1.5 text-sm">Rechazar</button>
         </div>
       ) : (

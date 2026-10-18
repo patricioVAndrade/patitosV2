@@ -59,10 +59,12 @@ python migrar.py --excel "..\..\Lista_precios_estatico\stock_real.xlsx" ^
 Qué hace la migración:
 - Le da a cada artículo un **SKU propio** (PB-000001…). El código viejo queda asociado: escanearlo o buscarlo encuentra el artículo.
 - Detecta la **marca** por el nombre: Duravit, Wabro, Filgo, Skora… (lista editable en `marcas_conocidas.txt`).
-- Asocia el **proveedor** (Coronel, Popeye, DyG) y guarda el **costo** aparte; solo lo ven los admins.
+- Migra **solo los artículos publicados** (`estado = SI`): se arranca limpio. Con `--incluir-ocultos` trae también los ocultos.
+- Asocia el **proveedor** (Coronel, Popeye, DyG) y guarda el **costo** aparte: lo ve el personal, nunca el público.
 - Calcula el precio de venta: costo × 2 redondeado a la centena.
 - Corrige los códigos tipo `74711.0`, los costos de relleno (0 o 1) y los costos mal leídos (`4.728` → 4728).
-- Sube las **≈23.000 líneas de las listas de proveedores**. No se publican: sirven para que al escanear o escribir un nombre se complete solo.
+- Deja las fotos **cuadradas, con fondo blanco y centradas**, igual que las que se suben desde el celular.
+- **No** sube las ≈23.000 líneas scrapeadas, salvo que agregues `--con-listas`. La base general se va a llenar con los scrapers nuevos.
 
 ### 4. Alojar la app en Cloudflare (donde ya tenés el dominio)
 Catálogo en `www.patitosbebe.com.ar` y panel separado en **`admin.patitosbebe.com.ar`**. En el dominio público, el panel y el login no existen. Paso a paso, plan recomendado y la capa extra de **Cloudflare Access** sobre el panel: **[docs/CLOUDFLARE.md](docs/CLOUDFLARE.md)**.
@@ -89,7 +91,12 @@ La app también corre sin cambios en cualquier servidor Node, con el `Dockerfile
   - **Escanear**: si el artículo existe, botones rápidos de *Disponible / Pocas / Agotado* y *Ocultar*. Si está en una lista de proveedor, se completa solo. Si no existe, *Crear nuevo* o *Asignar este código a un artículo existente*.
   - **Modo continuo**: escanear → foto → publicar → vuelve a abrir la cámara.
   - **Masiva**: elegir varias fotos, escribir los nombres (Enter pasa al siguiente) y *Publicar todos*.
-- **Vos (admin)**: además aprobás usuarios, ves costos y podés eliminar. Los demás *ocultan* o *archivan*, que se puede deshacer.
+- **Roles**:
+  - **Empleado**: todo el trabajo diario, incluidos costos, precios y cambios en lote.
+  - **Admin (vos)**: además ve el **historial**, aprueba **usuarios** y puede **eliminar definitivamente**.
+  - Los empleados *ocultan* o *archivan*, que se puede deshacer.
+- **Duplicar**: en el editor, para el mismo artículo en otro color o modelo. Copia datos y fotos; la foto no ocupa espacio de más.
+- **Colores / modelos**: campo de texto libre opcional ("rojo, azul", "modelos surtidos"). Se muestra en la ficha y entra en la búsqueda. Si un mismo artículo tiene un código por color, se cargan todos los códigos en el mismo artículo.
 
 ## Desarrollo
 
