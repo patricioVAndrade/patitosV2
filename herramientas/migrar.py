@@ -9,7 +9,7 @@ Qué hace:
   · Asocia el PROVEEDOR (Coronel / Popeye / DyG) cruzando el código con productos_general.db.
   · Corrige: códigos "74711.0", costos de relleno (0, 1…), costos mal leídos (4.728 → 4728), categorías.
   · Comprime las fotos (WebP ~20 KB + ~90 KB) y las sube.
-  · Guarda el costo aparte (solo lo ven los admin) y el precio de venta = costo × 2 redondeado.
+  · Guarda el costo aparte (lo ve el personal, nunca el público) y el precio de venta = costo × 2 redondeado.
   · Migra SOLO lo publicado (estado SI): se arranca limpio. Las listas de proveedores (≈23.000)
     se suben solo con --con-listas (productos_general.db se usa igual para reconocer el proveedor).
   · Las fotos quedan cuadradas, fondo blanco y centradas (igual que las que se suben desde el celular).
