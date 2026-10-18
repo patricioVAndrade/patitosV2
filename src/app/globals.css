@@ -14,6 +14,22 @@
   --color-tema-1: #bde0fe;
   --color-tema-2: #fff59d;
   --color-tema-3: #c8e6c9;
+
+  /* Catálogo público: colores tomados del logo */
+  --font-display: "Bagel Fat One", "Fredoka", ui-rounded, system-ui, sans-serif;
+  --font-lectura: "Lexend", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --color-patito: #ffe500;        /* amarillo de las letras */
+  --color-patito-claro: #fff6b8;
+  --color-rojo: #e8444b;          /* contorno del logo (decorativo, tamaños grandes) */
+  --color-rojo-texto: #c8243a;    /* rojo legible para texto chico */
+  --color-celeste: #00cccb;       /* estrella del logo */
+  --color-celeste-claro: #e3f8f8;
+  --color-celeste-texto: #00706f;
+  --color-azul: #1f2a44;          /* texto */
+  --color-gris: #5b6475;          /* texto secundario */
+  --color-linea: #e4e7ee;
+  --color-wa: #17804a;            /* verde WhatsApp oscurecido para que el texto blanco se lea */
+  --color-wa-oscuro: #116b3d;
 }
 
 html { -webkit-text-size-adjust: 100%; }
@@ -48,3 +64,77 @@ body { background: var(--color-crema); color: var(--color-tinta); }
 @utility chip-activo {
   @apply border-coral bg-coral text-white;
 }
+
+/* ---------- Catálogo público ---------- */
+.tienda { font-family: var(--font-lectura); color: var(--color-azul); background: #fff; }
+.tienda :focus-visible { outline: 3px solid var(--color-celeste-texto); outline-offset: 2px; }
+
+@utility titulo-seccion {
+  @apply font-display text-[1.75rem] leading-[1.1] text-azul sm:text-[2.25rem];
+}
+@utility btn-consultar {
+  @apply inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-wa bg-white px-3 py-1.5 text-sm font-bold text-wa transition hover:bg-wa hover:text-white active:scale-[0.98];
+}
+@utility btn-whatsapp-grande {
+  @apply inline-flex w-full items-center justify-center gap-2 rounded-full bg-wa px-5 py-3.5 text-lg font-bold text-white transition hover:bg-wa-oscuro active:scale-[0.98];
+}
+@utility chip-tienda {
+  @apply inline-flex shrink-0 items-center rounded-full border-2 border-linea bg-white px-3.5 py-1.5 text-[0.95rem] font-bold whitespace-nowrap text-azul transition hover:border-azul;
+}
+@utility chip-tienda-activo {
+  @apply border-azul bg-azul text-white hover:border-azul;
+}
+
+/* Etiqueta de precio: el mismo "sticker" amarillo con borde rojo de las letras del logo. */
+.etiqueta-precio {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  padding: 0.35rem 0.8rem 0.4rem 1.45rem;
+  background: var(--color-patito);
+  border: 3px solid var(--color-rojo);
+  border-radius: 0.35rem 1rem 1rem 0.35rem;
+  color: var(--color-azul);
+  line-height: 1;
+  transform: rotate(-4deg);
+  transform-origin: 0.6rem 50%;
+  box-shadow: 2px 3px 0 var(--color-rojo);
+}
+.etiqueta-precio::before { /* agujerito del hilo */
+  content: "";
+  position: absolute;
+  left: 0.45rem;
+  top: 50%;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-top: -0.25rem;
+  border-radius: 999px;
+  background: #fff;
+  border: 2px solid var(--color-rojo);
+}
+.etiqueta-precio .monto { font-family: var(--font-display); font-size: 1.2rem; letter-spacing: 0.01em; }
+@media (min-width: 40rem) { .etiqueta-precio .monto { font-size: 1.35rem; } }
+.etiqueta-precio .antes { font-size: 0.8rem; font-weight: 700; color: var(--color-rojo-texto); text-decoration: line-through; }
+.etiqueta-precio.grande { padding: 0.55rem 1.1rem 0.6rem 2rem; border-width: 4px; box-shadow: 3px 4px 0 var(--color-rojo); }
+.etiqueta-precio.grande::before { left: 0.65rem; width: 0.7rem; height: 0.7rem; margin-top: -0.35rem; }
+.etiqueta-precio.grande .monto { font-size: 2.25rem; }
+.etiqueta-precio.grande .antes { font-size: 1rem; }
+
+/* Único movimiento automático: las etiquetas de oferta se balancean una vez al cargar. */
+@keyframes columpio {
+  0% { transform: rotate(-14deg); }
+  45% { transform: rotate(3deg); }
+  75% { transform: rotate(-6deg); }
+  100% { transform: rotate(-4deg); }
+}
+.etiqueta-precio.balancea { animation: columpio 0.9s cubic-bezier(0.3, 0.7, 0.4, 1) both; animation-delay: var(--retraso, 0ms); }
+@media (prefers-reduced-motion: reduce) {
+  .etiqueta-precio.balancea { animation: none; }
+}
+
+/* Carrusel horizontal (Recién llegados) */
+.estante { scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+.estante::-webkit-scrollbar { display: none; }
+.estante > * { scroll-snap-align: start; }

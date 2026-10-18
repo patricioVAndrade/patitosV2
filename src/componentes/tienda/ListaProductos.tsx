@@ -49,12 +49,12 @@ export function ListaProductos({ iniciales, total, porPagina, paginaInicial, con
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {items.map((p, i) => <TarjetaProducto key={p.id} p={p} indice={i} />)}
+      <div className="grid grid-cols-2 gap-x-3 gap-y-7 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-4">
+        {items.map((p, i) => <TarjetaProducto key={p.id} p={p} indice={i} prioridad={i < 4} />)}
       </div>
-      <div ref={centinela} className="mt-6 text-center">
+      <div ref={centinela} className="mt-8 text-center">
         {quedan > 0 && (
-          <button onClick={verMas} disabled={cargando} className="btn-claro border-coral text-coral">
+          <button onClick={verMas} disabled={cargando} className="rounded-full border-2 border-azul px-6 py-2.5 font-bold text-azul transition hover:bg-azul hover:text-white disabled:opacity-50">
             {cargando ? "Cargando…" : error ? "Reintentar" : `Ver más (${quedan})`}
           </button>
         )}

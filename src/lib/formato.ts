@@ -48,3 +48,38 @@ export function esCodigoDeBarras(codigo: string): boolean {
 export function fechaHora(iso: string): string {
   return new Date(iso).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Argentina/Buenos_Aires" });
 }
+
+const LOCALE = "es-AR";
+const escaparRegex = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** "DURAVIT" → "Duravit" · "BIC" → "BIC" (siglas cortas quedan igual) · "Mi Marca" queda igual */
+export function marcaVisible(marca: string): string {
+  if (marca !== marca.toLocaleUpperCase(LOCALE)) return marca;
+  return marca
+    .split(/(\s+)/)
+    .map((w) => (w.trim().length <= 3 ? w : w.charAt(0) + w.slice(1).toLocaleLowerCase(LOCALE)))
+    .join("");
+}
+
+/**
+ * Nombre para mostrar al cliente (solo presentación: el nombre guardado no cambia).
+ *  · "MOCHILA FOOTY CON CARRO 18″" → "Mochila footy con carro 18″"
+ *  · quita el código del proveedor del final: "… TRENDY - 53703" → "… Trendy"
+ *  · la marca del artículo queda con mayúscula inicial
+ * Si el nombre ya viene escrito en minúsculas y mayúsculas, se respeta.
+ */
+export function nombreVisible(nombre: string, marca?: string | null): string {
+  let s = nombre.replace(/\s+/g, " ").trim();
+  const sufijo = s.match(/\s-\s([\p{L}\d][\p{L}\d./-]*)$/u);
+  if (sufijo && /\d/.test(sufijo[1]!) && s.length - sufijo[0].length >= 8) s = s.slice(0, -sufijo[0].length);
+  const mayusculas = (s.match(/\p{Lu}/gu) ?? []).length;
+  const minusculas = (s.match(/\p{Ll}/gu) ?? []).length;
+  if (mayusculas <= minusculas * 3) return s;
+  s = s.toLocaleLowerCase(LOCALE);
+  s = s.charAt(0).toLocaleUpperCase(LOCALE) + s.slice(1);
+  if (marca) {
+    const m = marcaVisible(marca);
+    s = s.replace(new RegExp(`(^|[^\\p{L}])${escaparRegex(m.toLocaleLowerCase(LOCALE))}(?=$|[^\\p{L}])`, "giu"), (_, antes: string) => antes + m);
+  }
+  return s;
+}

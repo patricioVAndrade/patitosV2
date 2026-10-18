@@ -21,3 +21,7 @@ herramientas/informe_migracion.csv
 .open-next/
 .wrangler/
 .dev.vars
+
+# Los genera `next dev` automáticamente
+/AGENTS.md
+/CLAUDE.md

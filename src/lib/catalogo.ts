@@ -64,3 +64,38 @@ export async function fichaProducto(sku: string) {
   const { data } = await supabasePublico().from("v_producto").select("*").eq("sku", sku.toUpperCase()).maybeSingle();
   return data;
 }
+
+/** Portada: lo último que entró (marcado como nuevo), sin agotados. */
+export async function novedades(limite = 12): Promise<ItemCatalogo[]> {
+  const { data } = await supabasePublico().from("v_catalogo").select(COLUMNAS)
+    .eq("es_nuevo", true).eq("agotado", false).order("creado", { ascending: false }).limit(limite);
+  return (data ?? []) as ItemCatalogo[];
+}
+
+/** Portada: ofertas vigentes (con precio), sin agotados. */
+export async function ofertas(limite = 8): Promise<{ items: ItemCatalogo[]; total: number }> {
+  const { data, count } = await supabasePublico().from("v_catalogo").select(COLUMNAS, { count: "exact" })
+    .eq("en_oferta", true).eq("agotado", false).order("actualizado", { ascending: false }).limit(limite);
+  return { items: (data ?? []) as ItemCatalogo[], total: count ?? 0 };
+}
+
+/** Categorías con cantidad y una foto representativa (la del artículo más reciente con foto). */
+export async function categoriasConFoto() {
+  const s = supabasePublico();
+  const [cats, recientes] = await Promise.all([
+    categoriasConArticulos(),
+    s.from("v_catalogo").select("categoria_slug,ruta_thumb").not("ruta_thumb", "is", null)
+      .eq("agotado", false).order("actualizado", { ascending: false }).limit(400),
+  ]);
+  const foto = new Map<string, string>();
+  for (const r of recientes.data ?? []) if (r.categoria_slug && r.ruta_thumb && !foto.has(r.categoria_slug)) foto.set(r.categoria_slug, r.ruta_thumb);
+  return cats.map((c) => ({ ...c, ruta_thumb: c.slug ? foto.get(c.slug) ?? null : null }));
+}
+
+/** Ficha: otros artículos de la misma categoría. */
+export async function relacionados(categoriaSlug: string, excluirSku: string, limite = 8): Promise<ItemCatalogo[]> {
+  const { data } = await supabasePublico().from("v_catalogo").select(COLUMNAS)
+    .eq("categoria_slug", categoriaSlug).neq("sku", excluirSku).eq("agotado", false)
+    .order("es_nuevo", { ascending: false }).order("actualizado", { ascending: false }).limit(limite);
+  return (data ?? []) as ItemCatalogo[];
+}

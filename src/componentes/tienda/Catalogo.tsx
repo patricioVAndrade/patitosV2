@@ -1,52 +1,102 @@
 import Link from "next/link";
-import { Suspense } from "react";
-import { buscarCatalogo, categoriasConArticulos, hayOfertasYNovedades, POR_PAGINA, type FiltrosCatalogo } from "@/lib/catalogo";
-import { Buscador } from "./Buscador";
+import {
+  buscarCatalogo, categoriasConArticulos, categoriasConFoto, novedades, ofertas, POR_PAGINA, type FiltrosCatalogo,
+} from "@/lib/catalogo";
+import { urlFoto } from "@/lib/formato";
 import { ListaProductos } from "./ListaProductos";
+import { TarjetaProducto } from "./TarjetaProducto";
+import { Estante } from "./Estante";
 
+const cantidad = (n: number) => `${n.toLocaleString("es-AR")} artículo${n === 1 ? "" : "s"}`;
+
+/** Inicio sin filtros: vidriera (recién llegados → ofertas → categorías → todo). Con filtros: resultados. */
 export async function Catalogo({ filtros }: { filtros: FiltrosCatalogo }) {
-  const [{ items, total }, categorias, especiales] = await Promise.all([
-    buscarCatalogo(filtros),
-    categoriasConArticulos(),
-    hayOfertasYNovedades(),
+  const portada = !filtros.q && !filtros.categoria && !filtros.marca && !filtros.filtro && (filtros.pagina ?? 1) === 1;
+  return portada ? <Portada /> : <Resultados filtros={filtros} />;
+}
+
+async function Portada() {
+  const [nuevos, enOferta, categorias, todo] = await Promise.all([
+    novedades(12),
+    ofertas(8),
+    categoriasConFoto(),
+    buscarCatalogo({}),
   ]);
 
-  const base = filtros.categoria ? `/c/${filtros.categoria}` : "/";
-  const conQ = (ruta: string, extra?: string) => {
-    const p = new URLSearchParams();
-    if (filtros.q) p.set("q", filtros.q);
-    if (extra) p.set("f", extra);
-    const s = p.toString();
-    return s ? `${ruta}?${s}` : ruta;
-  };
-  const activo = (cond: boolean) => (cond ? "chip chip-activo" : "chip");
+  return (
+    <>
+      {nuevos.length > 0 && (
+        <section aria-labelledby="t-nuevos" className="bg-celeste-claro">
+          <div className="mx-auto max-w-6xl px-4 pb-8 pt-7 sm:pb-10 sm:pt-9">
+            <Encabezado id="t-nuevos" titulo="Recién llegados" bajada="Lo último que entró al local." link={{ href: "/?f=nuevos", texto: "Ver todos" }} />
+            <Estante items={nuevos} prioridad />
+          </div>
+        </section>
+      )}
+
+      {enOferta.items.length > 0 && (
+        <section aria-labelledby="t-ofertas" className="mx-auto max-w-6xl px-4 pt-10">
+          <Encabezado
+            id="t-ofertas"
+            titulo="Ofertas"
+            bajada="Precios especiales mientras haya stock."
+            link={enOferta.total > enOferta.items.length ? { href: "/?f=ofertas", texto: `Ver las ${enOferta.total}` } : undefined}
+          />
+          <div className="grid grid-cols-2 gap-x-3 gap-y-7 sm:grid-cols-3 lg:grid-cols-4">
+            {enOferta.items.map((p, i) => <TarjetaProducto key={p.id} p={p} indice={i} />)}
+          </div>
+        </section>
+      )}
+
+      {categorias.length > 0 && (
+        <section aria-labelledby="t-categorias" className="mx-auto max-w-6xl px-4 pt-12">
+          <Encabezado id="t-categorias" titulo="Buscá por categoría" />
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {categorias.map((c) => (
+              <li key={c.slug}>
+                <Link href={`/c/${c.slug}`} className="flex items-center gap-3 rounded-[1.25rem] border-2 border-linea bg-white p-2 pr-3 transition-colors hover:border-azul">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={urlFoto(c.ruta_thumb)} alt="" loading="lazy" className="size-14 shrink-0 rounded-xl object-contain sm:size-16" />
+                  <span className="min-w-0">
+                    <span className="block font-bold leading-tight">{c.nombre}</span>
+                    <span className="block text-sm text-gris">{cantidad(c.cantidad)}</span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section aria-labelledby="t-todo" className="mx-auto max-w-6xl px-4 pt-12">
+        <Encabezado id="t-todo" titulo="Todo el catálogo" bajada={todo.total ? `${cantidad(todo.total)} en el local.` : undefined} />
+        <ListaProductos iniciales={todo.items} total={todo.total} porPagina={POR_PAGINA} paginaInicial={1} consulta={{}} />
+      </section>
+    </>
+  );
+}
+
+async function Resultados({ filtros }: { filtros: FiltrosCatalogo }) {
+  const [{ items, total }, categorias] = await Promise.all([buscarCatalogo(filtros), categoriasConArticulos()]);
+  const categoria = categorias.find((c) => c.slug === filtros.categoria)?.nombre;
+  const titulo = filtros.filtro === "ofertas" ? "Ofertas" : filtros.filtro === "nuevos" ? "Recién llegados" : categoria ?? "Catálogo";
+  const detalle = [
+    filtros.q ? `para “${filtros.q}”` : null,
+    filtros.filtro && categoria ? `en ${categoria}` : null,
+  ].filter(Boolean).join(" ");
 
   return (
-    <div>
-      <Suspense>
-        <Buscador inicial={filtros.q ?? ""} />
-      </Suspense>
-
-      <nav aria-label="Categorías" className="-mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-1">
-        <Link href={conQ("/")} className={activo(!filtros.categoria && !filtros.filtro)}>Todo</Link>
-        {especiales.ofertas && <Link href={conQ(base, "ofertas")} className={activo(filtros.filtro === "ofertas")}>🔥 Ofertas</Link>}
-        {especiales.nuevos && <Link href={conQ(base, "nuevos")} className={activo(filtros.filtro === "nuevos")}>🆕 Novedades</Link>}
-        {categorias.map((c) => (
-          <Link key={c.slug} href={conQ(`/c/${c.slug}`)} className={activo(filtros.categoria === c.slug && !filtros.filtro)}>
-            {c.nombre}
-          </Link>
-        ))}
-      </nav>
-
-      <p className="mb-3 text-center text-sm text-suave" aria-live="polite">
-        {total === 0 ? "" : `${total.toLocaleString("es-AR")} artículo${total === 1 ? "" : "s"}`}
+    <section aria-labelledby="t-resultados" className="mx-auto max-w-6xl px-4 pt-7">
+      <h1 id="t-resultados" className="titulo-seccion">{titulo}</h1>
+      <p className="mb-5 mt-1 text-gris" aria-live="polite">
+        {total === 0 ? "Sin resultados" : cantidad(total)}{detalle ? ` ${detalle}` : ""}
       </p>
 
       {total === 0 ? (
-        <div className="py-16 text-center text-suave">
-          <p className="text-4xl">🧸</p>
-          <p className="mt-2">No encontramos artículos{filtros.q ? ` para "${filtros.q}"` : ""}.</p>
-          <p>¡Consultanos por WhatsApp igual!</p>
+        <div className="rounded-[1.25rem] border-2 border-dashed border-linea px-6 py-12 text-center">
+          <p className="text-lg font-bold">No encontramos {filtros.q ? `“${filtros.q}”` : "artículos acá"}.</p>
+          <p className="mt-1 text-gris">Probá con otra palabra, o preguntanos por WhatsApp: muchas cosas no llegan a estar en la web.</p>
+          <Link href="/" className="mt-4 inline-block font-bold underline decoration-2 underline-offset-4">Ver todo el catálogo</Link>
         </div>
       ) : (
         <ListaProductos
@@ -57,6 +107,22 @@ export async function Catalogo({ filtros }: { filtros: FiltrosCatalogo }) {
           paginaInicial={filtros.pagina ?? 1}
           consulta={{ q: filtros.q, cat: filtros.categoria, marca: filtros.marca, f: filtros.filtro }}
         />
+      )}
+    </section>
+  );
+}
+
+function Encabezado({ id, titulo, bajada, link }: { id: string; titulo: string; bajada?: string; link?: { href: string; texto: string } }) {
+  return (
+    <div className="mb-5 flex items-end justify-between gap-4">
+      <div>
+        <h2 id={id} className="titulo-seccion">{titulo}</h2>
+        {bajada && <p className="mt-1 text-gris">{bajada}</p>}
+      </div>
+      {link && (
+        <Link href={link.href} className="shrink-0 pb-1 font-bold underline decoration-2 underline-offset-4 hover:text-celeste-texto">
+          {link.texto}
+        </Link>
       )}
     </div>
   );

@@ -30,14 +30,15 @@ test.describe.configure({ mode: "serial" });
 test.describe("Catálogo público", () => {
   test("muestra artículos, busca sin tildes y abre la ficha", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByText(/artículos$/).first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Todo el catálogo" })).toBeVisible();
     await expect(page.locator("article").first()).toBeVisible();
-    await page.getByLabel("Buscar artículo").fill("pelota futbol");
+    await page.getByLabel("Buscar en el catálogo").fill("pelota futbol");
     await expect(page).toHaveURL(/q=pelota/);
-    await expect(page.locator("article").first()).toContainText("PELOTA");
+    await expect(page.locator("article").first()).toContainText(/pelota/i);
     await page.locator("article a").nth(1).click();
     await expect(page).toHaveURL(/\/p\/PB-\d{6}\//);
-    await expect(page.getByRole("link", { name: /Consultar|Avisame/ })).toHaveAttribute("href", /wa\.me\/5493582405970/);
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(/pelota/i);
+    await expect(page.getByRole("link", { name: /Consultar por WhatsApp|Avisame/ }).first()).toHaveAttribute("href", /wa\.me\/5493582405970/);
   });
 
   test("categorías y carga de más resultados", async ({ page }) => {
@@ -149,8 +150,8 @@ test.describe("Panel", () => {
 
     await ir(page, "/?q=auto%20de%20prueba%20e2e");
     const tarjeta = page.locator("article").first();
-    await expect(tarjeta).toContainText("AUTO DE PRUEBA E2E");
-    await expect(tarjeta).toContainText("MARCA E2E");
+    await expect(tarjeta).toContainText("Auto de prueba e2e");
+    await expect(tarjeta).toContainText("Marca E2E");
     await expect(tarjeta).toContainText("12.500");
     const src = await tarjeta.locator("img").getAttribute("src");
     expect(src).toMatch(/storage\/v1\/object\/public\/productos\/\d{4}-\d{2}\/.+-t\.webp$/);
@@ -187,8 +188,8 @@ test.describe("Panel", () => {
     await expect(page.locator("article")).toHaveCount(2);
     const fotos = await page.locator("article img").evaluateAll((imgs) => imgs.map((i) => (i as HTMLImageElement).src));
     expect(fotos[0]).toBe(fotos[1]); // misma foto, no se subió dos veces
-    await page.locator("article", { hasText: "AZUL" }).locator("a").nth(1).click();
-    await expect(page.getByText("Colores / modelos:")).toBeVisible();
+    await page.locator("article", { hasText: /azul/i }).locator("a").nth(1).click();
+    await expect(page.getByText("Colores / modelos", { exact: true })).toBeVisible();
     await expect(page.getByText("azul, celeste")).toBeVisible();
   });
 
