@@ -9,6 +9,4 @@ export const negocio = {
   whatsapp: env.whatsapp,
   instagram: "https://www.instagram.com/patitosbebe/",
   facebook: "https://www.facebook.com/PatitosBebeOficial/",
-  /** Correo de contacto público (opcional): aparece en la política de privacidad si se completa. */
-  email: "" as string,
 } as const;

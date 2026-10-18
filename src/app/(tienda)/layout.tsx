@@ -22,7 +22,6 @@ export default function TiendaLayout({ children }: { children: React.ReactNode }
         <p className="font-medium text-tinta">📍 Nuestro local</p>
         <p>{negocio.direccion}</p>
         <p className="text-sm">{negocio.horarios}</p>
-        <p className="mt-6 text-xs"><Link href="/privacidad" className="underline">Política de privacidad</Link></p>
       </footer>
     </>
   );
