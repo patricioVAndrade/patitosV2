@@ -54,6 +54,12 @@ python migrar.py --excel "..\..\Lista_precios_estatico\stock_real.xlsx" ^
   --fotos "..\..\Lista_precios_estatico\static\img" "..\..\ScrappingCoronel\resultados" ^
           "..\..\ScrappingPopeye\resultados" "..\..\ScrappingDyG\resultados" --prueba
 ```
+En **PowerShell** el salto de línea es con `` ` `` en vez de `^`, o ponelo todo en una sola línea:
+```powershell
+python migrar.py --excel "C:\ruta\stock_real.xlsx" --db "C:\ruta\productos_general.db" --fotos "C:\ruta\static\img" --prueba
+```
+Tip: en el Explorador, clic derecho sobre el archivo → **Copiar como ruta de acceso** (o `Ctrl+Shift+C`) y pegalo después de `--excel`, `--db` o `--fotos`.
+
 `--prueba` no sube nada: comprime las fotos en `salida_prueba/` y genera **`informe_migracion.csv`** con lo que conviene revisar (nombres repetidos, sin foto, costos de relleno, códigos corregidos). Si el resultado está bien, corré el mismo comando **sin** `--prueba`. Corrélo primero contra el proyecto de prueba y después contra producción. Se puede repetir sin duplicar artículos.
 
 Qué hace la migración:
