@@ -19,6 +19,7 @@ const RUTAS_TIENDA: [string, string][] = [
   ["/c/:ruta+", "/c/:ruta+"],
   ["/p/:ruta+", "/p/:ruta+"],
   ["/sitemap.xml", "/sitemap.xml"],
+  ["/privacidad", "/privacidad"],
   ["/api/catalogo", "/api/catalogo"],
 ];
 
@@ -49,10 +50,13 @@ const config: NextConfig = {
           { source: "/:ruta+", has: enApex, destination: `${sitio}/:ruta+`, permanent: true },
         ]
       : [];
-    if (!adminHost || !sitio) return sinWww;
+    // la URL que se cargó en Google la primera vez
+    const viejas = [{ source: "/politicas", destination: "/privacidad", permanent: true }];
+    if (!adminHost || !sitio) return [...sinWww, ...viejas];
     const enAdmin = [{ type: "host" as const, value: exacto(adminHost) }];
     return [
       ...sinWww,
+      ...viejas,
       { source: "/", has: enAdmin, destination: "/panel", permanent: false },
       ...RUTAS_TIENDA.map(([source, destino]) => ({ source, has: enAdmin, destination: `${sitio}${destino}`, permanent: false })),
     ];

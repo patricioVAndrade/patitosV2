@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabaseNavegador } from "@/lib/supabase/cliente";
 import { Logo } from "@/componentes/ui/Logo";
 import { BotonGoogle } from "./BotonGoogle";
+import { env } from "@/lib/env";
 
 function Ingresar() {
   const sp = useSearchParams();
@@ -27,6 +28,9 @@ function Ingresar() {
         <p className="mb-6 text-sm text-suave">Ingresá con tu cuenta de Google. La primera vez, el administrador tiene que aprobar tu acceso.</p>
         {verificando ? <p className="text-sm text-suave">Verificando…</p> : <BotonGoogle volver={volver} />}
         {sp.get("error") && <p className="mt-4 text-sm text-red-600">No se pudo completar el ingreso. Probá de nuevo.</p>}
+        <p className="mt-6 text-xs text-suave">
+          <a href={`${env.sitioUrl}/privacidad`} className="underline">Política de privacidad</a>
+        </p>
       </div>
     </main>
   );
