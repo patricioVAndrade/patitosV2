@@ -7,7 +7,8 @@ cd "$(dirname "$0")/.."
 : "${POSTGREST_BIN:=postgrest}"
 export JWT_SECRET="secreto-de-prueba-de-al-menos-32-caracteres!!"
 mkdir -p e2e/.tmp
-AUTH_URL="${DB_URL/postgres@/authenticator:autenticador@}"
+# mismo servidor y base, pero con el usuario de PostgREST (sirve con o sin contraseña en DB_URL)
+AUTH_URL="$(printf '%s' "$DB_URL" | sed -E 's#^(postgres(ql)?://)[^@/]*@#\1authenticator:autenticador@#')"
 cat > e2e/.tmp/postgrest.conf <<CONF
 db-uri = "$AUTH_URL"
 db-schemas = "public"
@@ -22,10 +23,17 @@ CONF
 echo $! > e2e/.tmp/postgrest.pid
 DB_URL="$DB_URL" JWT_SECRET="$JWT_SECRET" node e2e/supabase-falso.mjs > e2e/.tmp/supabase-falso.log 2>&1 &
 echo $! > e2e/.tmp/supabase-falso.pid
-for i in $(seq 1 30); do
-  curl -fsS http://127.0.0.1:3001/ >/dev/null 2>&1 && grep -q ANON_KEY e2e/.tmp/supabase-falso.log && break
+listo=0
+for i in $(seq 1 60); do
+  if curl -fsS http://127.0.0.1:3001/ >/dev/null 2>&1 && grep -q ANON_KEY e2e/.tmp/supabase-falso.log; then listo=1; break; fi
   sleep 0.5
 done
+if [ "$listo" != 1 ]; then
+  echo "✘ El entorno de prueba no arrancó." >&2
+  echo "--- postgrest.log" >&2; cat e2e/.tmp/postgrest.log >&2 || true
+  echo "--- supabase-falso.log" >&2; cat e2e/.tmp/supabase-falso.log >&2 || true
+  exit 1
+fi
 grep ANON_KEY e2e/.tmp/supabase-falso.log | cut -d= -f2 > e2e/.tmp/anon_key
 node -e '
 const c=require("crypto");const b=o=>Buffer.from(JSON.stringify(o)).toString("base64url");

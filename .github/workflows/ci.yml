@@ -111,6 +111,7 @@ jobs:
         if: failure()
         with:
           name: reporte-e2e
+          include-hidden-files: true
           path: |
             playwright-report/
             test-results/
