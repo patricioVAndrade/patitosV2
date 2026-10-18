@@ -1,0 +1,66 @@
+import "server-only";
+import { supabasePublico } from "./supabase/servidor";
+import { palabrasBusqueda } from "./formato";
+import type { ItemCatalogo } from "./supabase/database.types";
+
+export const POR_PAGINA = 24;
+
+export interface FiltrosCatalogo {
+  q?: string;
+  categoria?: string; // slug
+  marca?: string;     // slug
+  filtro?: "ofertas" | "nuevos";
+  pagina?: number;
+}
+
+const COLUMNAS =
+  "id,sku,slug,nombre,categoria,categoria_slug,marca,marca_slug,precio,precio_anterior,en_oferta,es_nuevo,disponibilidad,agotado,edad_desde_meses,edad_hasta_meses,ruta_thumb,ruta_full,actualizado,creado,busqueda";
+
+export function leerFiltros(sp: Record<string, string | string[] | undefined>): FiltrosCatalogo {
+  const uno = (k: string) => (Array.isArray(sp[k]) ? sp[k]?.[0] : sp[k]) as string | undefined;
+  const f = uno("f");
+  return {
+    q: uno("q")?.slice(0, 80) || undefined,
+    marca: uno("marca") || undefined,
+    filtro: f === "ofertas" || f === "nuevos" ? f : undefined,
+    pagina: Math.max(1, Math.min(500, Number(uno("pag")) || 1)),
+  };
+}
+
+export async function buscarCatalogo(f: FiltrosCatalogo): Promise<{ items: ItemCatalogo[]; total: number }> {
+  const supabase = supabasePublico();
+  const pagina = f.pagina ?? 1;
+  const desde = (pagina - 1) * POR_PAGINA;
+  let q = supabase.from("v_catalogo").select(COLUMNAS, { count: "exact" });
+  if (f.categoria) q = q.eq("categoria_slug", f.categoria);
+  if (f.marca) q = q.eq("marca_slug", f.marca);
+  if (f.filtro === "ofertas") q = q.eq("en_oferta", true);
+  if (f.filtro === "nuevos") q = q.eq("es_nuevo", true);
+  for (const p of palabrasBusqueda(f.q ?? "")) q = q.ilike("busqueda", `%${p}%`);
+  const { data, count, error } = await q
+    .order("agotado", { ascending: true })
+    .order("es_nuevo", { ascending: false })
+    .order("actualizado", { ascending: false })
+    .range(desde, desde + POR_PAGINA - 1);
+  if (error) throw new Error(`No se pudo leer el catálogo: ${error.message}`);
+  return { items: (data ?? []) as ItemCatalogo[], total: count ?? 0 };
+}
+
+export async function categoriasConArticulos() {
+  const { data } = await supabasePublico().from("v_categorias").select("*").gt("cantidad", 0).order("orden");
+  return data ?? [];
+}
+
+export async function hayOfertasYNovedades() {
+  const s = supabasePublico();
+  const [o, n] = await Promise.all([
+    s.from("v_catalogo").select("id", { count: "exact", head: true }).eq("en_oferta", true),
+    s.from("v_catalogo").select("id", { count: "exact", head: true }).eq("es_nuevo", true),
+  ]);
+  return { ofertas: (o.count ?? 0) > 0, nuevos: (n.count ?? 0) > 0 };
+}
+
+export async function fichaProducto(sku: string) {
+  const { data } = await supabasePublico().from("v_producto").select("*").eq("sku", sku.toUpperCase()).maybeSingle();
+  return data;
+}

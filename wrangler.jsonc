@@ -1,0 +1,16 @@
+// Despliegue en Cloudflare Workers (adaptador OpenNext). Ver docs/CLOUDFLARE.md
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "patitos-bebe",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-09-15",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "observability": { "enabled": true },
+  // Un solo Worker atiende los tres dominios; next.config.ts decide qué se ve en cada uno.
+  "routes": [
+    { "pattern": "www.patitosbebe.com.ar", "custom_domain": true },
+    { "pattern": "patitosbebe.com.ar", "custom_domain": true },
+    { "pattern": "admin.patitosbebe.com.ar", "custom_domain": true }
+  ]
+}
