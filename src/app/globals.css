@@ -135,6 +135,6 @@ body { background: var(--color-crema); color: var(--color-tinta); }
 }
 
 /* Carrusel horizontal (Recién llegados) */
-.estante { scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+.estante { scroll-snap-type: x mandatory; scroll-padding-inline: 1rem; scrollbar-width: none; overscroll-behavior-x: contain; }
 .estante::-webkit-scrollbar { display: none; }
 .estante > * { scroll-snap-align: start; }

@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { urlFoto } from "@/lib/formato";
+import { SelloNuevo } from "./SelloNuevo";
 
 export function Galeria({ imagenes, nombre, agotado, nuevo = false }: { imagenes: { thumb: string; full: string }[]; nombre: string; agotado: boolean; nuevo?: boolean }) {
   const [actual, setActual] = useState(0);
@@ -11,7 +12,7 @@ export function Galeria({ imagenes, nombre, agotado, nuevo = false }: { imagenes
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={foto ? urlFoto(foto.full) : "/sin-foto.svg"} alt={nombre} className={`size-full object-contain ${agotado ? "opacity-50 grayscale" : ""}`} />
         {nuevo && !agotado && (
-          <span className="absolute left-3 top-3 rounded-full bg-celeste px-3 py-1 font-bold text-azul">Nuevo</span>
+          <span className="absolute right-2 top-2"><SelloNuevo grande /></span>
         )}
       </div>
       {imagenes.length > 1 && (

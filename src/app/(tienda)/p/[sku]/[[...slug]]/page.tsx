@@ -135,7 +135,7 @@ export default async function FichaProducto({ params }: Props) {
               Ver todo
             </Link>
           </div>
-          <Estante items={otros} />
+          <Estante items={otros} etiqueta={`Más de ${p.categoria}`} />
         </section>
       )}
     </>

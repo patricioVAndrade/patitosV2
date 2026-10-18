@@ -29,7 +29,7 @@ async function Portada() {
         <section aria-labelledby="t-nuevos" className="bg-celeste-claro">
           <div className="mx-auto max-w-6xl px-4 pb-8 pt-7 sm:pb-10 sm:pt-9">
             <Encabezado id="t-nuevos" titulo="Recién llegados" bajada="Lo último que entró al local." link={{ href: "/?f=nuevos", texto: "Ver todos" }} />
-            <Estante items={nuevos} prioridad />
+            <Estante items={nuevos} prioridad etiqueta="Recién llegados" />
           </div>
         </section>
       )}

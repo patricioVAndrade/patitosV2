@@ -3,6 +3,7 @@ import type { ItemCatalogo } from "@/lib/supabase/database.types";
 import { marcaVisible, moneda, nombreVisible, urlFoto, urlProducto } from "@/lib/formato";
 import { BotonWhatsApp } from "./BotonWhatsApp";
 import { EtiquetaPrecio } from "./EtiquetaPrecio";
+import { SelloNuevo } from "./SelloNuevo";
 
 export function TarjetaProducto({ p, indice = 0, prioridad = false }: { p: ItemCatalogo; indice?: number; prioridad?: boolean }) {
   const agotado = p.disponibilidad === "agotado";
@@ -25,13 +26,15 @@ export function TarjetaProducto({ p, indice = 0, prioridad = false }: { p: ItemC
             decoding="async"
             className={`size-full object-contain ${agotado ? "opacity-40 grayscale" : ""}`}
           />
-          {p.es_nuevo && !agotado && (
-            <span className="absolute left-2 top-2 rounded-full bg-celeste px-2.5 py-0.5 text-[0.8rem] font-bold text-azul">Nuevo</span>
-          )}
           {agotado && (
             <span className="absolute inset-x-0 top-1/2 mx-auto w-fit -translate-y-1/2 rounded-full bg-azul px-3 py-1 text-sm font-bold text-white">Agotado</span>
           )}
         </Link>
+        {p.es_nuevo && !agotado && (
+          <div className="absolute -right-2.5 -top-4 z-10">
+            <SelloNuevo />
+          </div>
+        )}
         {oferta && (
           <div className="absolute -bottom-4 left-1 z-10">
             <EtiquetaPrecio precio={p.precio!} anterior={p.precio_anterior} balancea retraso={(indice % 4) * 90} />
