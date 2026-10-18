@@ -79,7 +79,7 @@ La app también corre sin cambios en cualquier servidor Node, con el `Dockerfile
 | `SUPABASE_ACCESS_TOKEN` | Migraciones automáticas |
 | `SUPABASE_REF_PRUEBA`, `SUPABASE_DB_PASSWORD_PRUEBA` | Base de prueba |
 | `SUPABASE_REF_PRODUCCION`, `SUPABASE_DB_PASSWORD_PRODUCCION` | Base de producción |
-| `SUPABASE_DB_URL_PRODUCCION` | Backup diario |
+| `SUPABASE_DB_URL_PRUEBA`, `SUPABASE_DB_URL_PRODUCCION` | Conexión por el *Session pooler* (Supabase → **Connect** → Session pooler → URI, con la contraseña). Si están, las migraciones las usan (GitHub no tiene IPv6). La de producción también hace el backup diario |
 | `SUPABASE_URL`, `SUPABASE_ANON_KEY` | Que Supabase no pause el proyecto |
 | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (+ variables `NEXT_PUBLIC_*`) | Publicar en Cloudflare (ver docs/CLOUDFLARE.md) |
 

@@ -5,6 +5,9 @@
 #   SUPABASE_ACCESS_TOKEN                         (supabase.com → Account → Access Tokens)
 #   SUPABASE_REF_PRUEBA,  SUPABASE_DB_PASSWORD_PRUEBA
 #   SUPABASE_REF_PRODUCCION, SUPABASE_DB_PASSWORD_PRODUCCION
+# Alternativa más directa (no usa el token): SUPABASE_DB_URL_PRUEBA / SUPABASE_DB_URL_PRODUCCION
+#   = Supabase → Connect → "Session pooler" → URI, con la contraseña de la base.
+#   Si está cargada, se usa esa. GitHub no tiene IPv6, por eso va por el pooler (IPv4).
 name: Base de datos
 
 on:
@@ -33,8 +36,10 @@ jobs:
       - id: v
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          DB_URL_PRUEBA: ${{ secrets.SUPABASE_DB_URL_PRUEBA }}
+          DB_URL_PRODUCCION: ${{ secrets.SUPABASE_DB_URL_PRODUCCION }}
         run: |
-          if [ -n "$SUPABASE_ACCESS_TOKEN" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"
+          if [ -n "$SUPABASE_ACCESS_TOKEN$DB_URL_PRUEBA$DB_URL_PRODUCCION" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"
           else echo "ok=false" >> "$GITHUB_OUTPUT"; echo "::notice::Faltan secretos de Supabase: no se aplican migraciones (ver README)."; fi
 
   migrar:
@@ -46,12 +51,26 @@ jobs:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       REF: ${{ (inputs.entorno || 'prueba') == 'produccion' && secrets.SUPABASE_REF_PRODUCCION || secrets.SUPABASE_REF_PRUEBA }}
       SUPABASE_DB_PASSWORD: ${{ (inputs.entorno || 'prueba') == 'produccion' && secrets.SUPABASE_DB_PASSWORD_PRODUCCION || secrets.SUPABASE_DB_PASSWORD_PRUEBA }}
+      DB_URL: ${{ (inputs.entorno || 'prueba') == 'produccion' && secrets.SUPABASE_DB_URL_PRODUCCION || secrets.SUPABASE_DB_URL_PRUEBA }}
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
-        with: { version: 2.48.3 }
-      - run: supabase link --project-ref "$REF"
+        with: { version: 2.120.0 }
+      - name: Conectar con la base
+        run: |
+          if [ -n "$DB_URL" ]; then
+            echo "Conexión por el Session pooler (secreto SUPABASE_DB_URL_*)."
+            echo "DESTINO=--db-url" >> "$GITHUB_ENV"
+          else
+            if [ -z "$REF" ] || [ -z "$SUPABASE_DB_PASSWORD" ]; then
+              echo "::error::Faltan SUPABASE_REF_* y SUPABASE_DB_PASSWORD_* (o SUPABASE_DB_URL_*) para este entorno."; exit 1
+            fi
+            supabase link --project-ref "$REF"
+            echo "DESTINO=--linked" >> "$GITHUB_ENV"
+          fi
       - name: Ver qué se va a aplicar
-        run: supabase migration list
+        run: |
+          if [ "$DESTINO" = "--db-url" ]; then supabase migration list --db-url "$DB_URL"; else supabase migration list --linked; fi
       - name: Aplicar migraciones
-        run: supabase db push --include-all
+        run: |
+          if [ "$DESTINO" = "--db-url" ]; then supabase db push --db-url "$DB_URL" --include-all --yes; else supabase db push --linked --include-all --yes; fi

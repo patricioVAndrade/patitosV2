@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: supabase/setup-cli@v1
-        with: { version: 2.48.3 }
+        with: { version: 2.120.0 }
       - name: Exportar
         env:
           DB_URL: ${{ secrets.SUPABASE_DB_URL_PRODUCCION }}
