@@ -50,8 +50,8 @@ CATEGORIAS = {  # nombre en el sistema viejo (normalizado) -> slug nuevo
     "pelucheria": "pelucheria", "peluches": "pelucheria",
     "libreria": "libreria", "cartucheras_carpetas": "libreria", "cartucheras": "libreria", "libros": "libreria",
     "arte_manualidades": "libreria", "escolar": "libreria", "papeleria": "libreria", "carpetas": "libreria",
-    "marroquineria": "marroquineria", "mochilas_maletines": "marroquineria", "mochilas": "marroquineria",
-    "articulos_viaje": "marroquineria", "bandoleras": "marroquineria",
+    "marroquineria": "mochilas-y-bolsos", "mochilas_maletines": "mochilas-y-bolsos", "mochilas": "mochilas-y-bolsos",
+    "articulos_viaje": "mochilas-y-bolsos", "bandoleras": "mochilas-y-bolsos",
     "hogar": "hogar", "bazar_cocina": "hogar", "deco_hogar": "hogar", "aromatizacion_velas": "hogar",
     "textil": "hogar", "higiene_limpieza": "hogar", "bazar": "hogar",
     "belleza y accesorios": "belleza-y-accesorios", "belleza_accesorios": "belleza-y-accesorios",
@@ -499,7 +499,7 @@ def main():
         sb.insertar("lista_proveedores", [{
             "proveedor_id": prov_id[m["proveedor"]], "codigo": m["codigo"], "nombre": m["nombre"],
             "categoria": next((c for c, s in [("Juguetería", "jugueteria"), ("Peluchería", "pelucheria"), ("Librería", "libreria"),
-                                              ("Marroquinería", "marroquineria"), ("Hogar", "hogar"), ("Belleza y Accesorios", "belleza-y-accesorios"),
+                                              ("Mochilas y bolsos", "mochilas-y-bolsos"), ("Hogar", "hogar"), ("Belleza y Accesorios", "belleza-y-accesorios"),
                                               ("Electro", "electro"), ("Verano", "verano"), ("Cotillón", "cotillon"), ("Regalería", "regaleria")]
                               if s == m["categoria"]), None),
             "marca": m["marca"], "costo": m["costo"],

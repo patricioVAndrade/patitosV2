@@ -49,10 +49,15 @@ const config: NextConfig = {
           { source: "/:ruta+", has: enApex, destination: `${sitio}/:ruta+`, permanent: true },
         ]
       : [];
-    if (!adminHost || !sitio) return sinWww;
+    // Categorías que cambiaron de nombre: los links viejos siguen funcionando
+    const renombradas = [
+      { source: "/c/marroquineria", destination: "/c/mochilas-y-bolsos", permanent: true },
+    ];
+    if (!adminHost || !sitio) return [...sinWww, ...renombradas];
     const enAdmin = [{ type: "host" as const, value: exacto(adminHost) }];
     return [
       ...sinWww,
+      ...renombradas,
       { source: "/", has: enAdmin, destination: "/panel", permanent: false },
       ...RUTAS_TIENDA.map(([source, destino]) => ({ source, has: enAdmin, destination: `${sitio}${destino}`, permanent: false })),
     ];
