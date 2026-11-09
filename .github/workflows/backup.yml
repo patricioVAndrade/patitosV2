@@ -12,7 +12,7 @@ on:
 jobs:
   configurado:
     name: ¿Hay claves cargadas?
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       ok: ${{ steps.v.outputs.ok }}
     steps:
@@ -26,7 +26,7 @@ jobs:
   backup:
     needs: configurado
     if: needs.configurado.outputs.ok == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: supabase/setup-cli@v1
         with: { version: 2.120.0 }

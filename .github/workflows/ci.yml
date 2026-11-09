@@ -13,7 +13,7 @@ concurrency:
 jobs:
   calidad:
     name: Tipos y pruebas unitarias
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -27,7 +27,7 @@ jobs:
 
   cloudflare:
     name: Compila para Cloudflare Workers
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       NEXT_PUBLIC_SUPABASE_URL: https://ejemplo.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: clave-de-ejemplo
@@ -44,7 +44,7 @@ jobs:
 
   base-de-datos:
     name: Migraciones y permisos (RLS)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:16
@@ -65,7 +65,7 @@ jobs:
   e2e:
     name: Pruebas de punta a punta
     needs: [calidad, base-de-datos, cloudflare]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:16

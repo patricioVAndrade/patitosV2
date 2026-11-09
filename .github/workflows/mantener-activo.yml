@@ -8,7 +8,7 @@ on:
 jobs:
   configurado:
     name: ¿Hay claves cargadas?
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       ok: ${{ steps.v.outputs.ok }}
     steps:
@@ -23,7 +23,7 @@ jobs:
   ping:
     needs: configurado
     if: needs.configurado.outputs.ok == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - run: |
           curl -fsS "${{ secrets.SUPABASE_URL }}/rest/v1/v_categorias?select=slug&limit=1" \

@@ -29,7 +29,7 @@ concurrency:
 jobs:
   configurado:
     name: ¿Hay claves cargadas?
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       ok: ${{ steps.v.outputs.ok }}
     steps:
@@ -45,7 +45,7 @@ jobs:
   migrar:
     needs: configurado
     if: needs.configurado.outputs.ok == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: ${{ inputs.entorno || 'prueba' }}
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
