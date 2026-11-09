@@ -127,3 +127,4 @@ Ejemplo: **aumento de precios por marca**, que ya tiene la estructura creada.
 | Aumentos de precio | `ajustar_precios()` / `revertir_ajuste()`, detalle en `ajustes_detalle` |
 | ¿Sigue habiendo? | tabla `revisiones` (no toca la fecha del artículo), `pendientes_revision()`, `datos_faltantes()` |
 | Repetidos | `posibles_repetidos()`, `fotos_parecidas()` (huella dHash de 256 bits en `imagenes.huella`), `pares_repetidos()`, `unir_productos()`; el link del unido redirige con `redireccion_producto()` |
+| Desde factura | `src/lib/facturas/` lee el PDF en el navegador (pdf.js; el worker se copia a `public/pdfjs/` al instalar) y comprueba cantidad de renglones y total contra el pie; `analizar_factura()` dice existe / parecido / nuevo y sugiere categoría, marca y precio; `cargar_factura()` guarda todo junto; `facturas_cargadas` avisa si se repite. Las facturas reales no se suben al repositorio (tienen CUIT y costos) |

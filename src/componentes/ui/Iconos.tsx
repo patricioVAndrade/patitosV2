@@ -29,3 +29,4 @@ export const IconoCompartir = ({ className }: P) => (<svg {...base(className)}><
 export const IconoDescargar = ({ className }: P) => (<svg {...base(className)}><path d="M12 3v12M8 11l4 4 4-4M5 19h14" /></svg>);
 export const IconoEtiqueta = ({ className }: P) => (<svg {...base(className)}><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9Z" /><circle cx="7.5" cy="7.5" r="1.5" /></svg>);
 export const IconoUnir = ({ className }: P) => (<svg {...base(className)}><rect x="8" y="8" width="13" height="13" rx="2" /><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" /></svg>);
+export const IconoFactura = ({ className }: P) => (<svg {...base(className)}><path d="M6 3h9l4 4v14l-2.5-1.5L14 21l-2-1.5L10 21l-2.5-1.5L5 21V4a1 1 0 0 1 1-1Z" /><path d="M9 9h6M9 13h6M9 17h3" /></svg>);

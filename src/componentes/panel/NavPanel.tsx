@@ -4,11 +4,12 @@ import { usePathname } from "next/navigation";
 import type { Perfil } from "@/lib/supabase/database.types";
 import { puede } from "@/lib/permisos";
 import { env } from "@/lib/env";
-import { IconoEtiqueta, IconoFotos, IconoInicio, IconoLista, IconoMas, IconoReloj, IconoSalir, IconoUnir, IconoUsuarios, IconoCheck } from "@/componentes/ui/Iconos";
+import { IconoEtiqueta, IconoFotos, IconoInicio, IconoLista, IconoMas, IconoReloj, IconoSalir, IconoUnir, IconoUsuarios, IconoCheck, IconoFactura } from "@/componentes/ui/Iconos";
 
 /** Herramientas: en la PC van en la barra lateral; en el celular, dentro de "Más". */
 export function herramientasPanel(perfil: Perfil) {
   return [
+    { href: "/panel/factura", texto: "Desde factura", Icono: IconoFactura, detalle: "Cargar los artículos nuevos de un pedido en PDF" },
     { href: "/panel/revisar", texto: "¿Sigue habiendo?", Icono: IconoCheck, detalle: "Artículos para revisar y datos que faltan" },
     { href: "/panel/repetidos", texto: "Repetidos", Icono: IconoUnir, detalle: "Artículos que parecen cargados dos veces" },
     { href: "/panel/precios", texto: "Precios", Icono: IconoEtiqueta, detalle: "Aumentos por marca, proveedor o categoría" },

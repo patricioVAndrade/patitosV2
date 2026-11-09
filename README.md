@@ -107,6 +107,7 @@ La app también corre sin cambios en cualquier servidor Node, con el `Dockerfile
 - **Compartir**: en el editor, arma una imagen para historias de Instagram, estados de WhatsApp o publicaciones.
 - **Más** (en el celular) tiene las herramientas:
   - **¿Sigue habiendo?**: artículos que nadie tocó en un tiempo, con botones *Sí hay / Pocas / Agotado / Ocultar*, y **Datos que faltan** (sin foto, sin precio, sin marca…).
+  - **Desde factura**: se sube el detalle de pedido en PDF (por ahora, el de Coronel) y se lee en el navegador, sin IA y sin guardar el archivo. Lo que ya está se reconoce por el código del proveedor (Codtex+Codnum); lo nuevo se crea **oculto y sin foto**, con categoría, marca y precio sugeridos; y avisa si cambió algún costo. Para sumar otro proveedor: un archivo como `src/lib/facturas/coronel.ts`.
   - **Repetidos**: pares para revisar; *Dejar este* une los dos (códigos, fotos, datos) y el link del otro redirige.
   - **Precios**: aumentos o rebajas en % por marca, proveedor o categoría, con vista previa, redondeo, opción de costo y *Deshacer*.
 
@@ -130,10 +131,10 @@ Para cambiar la base:
 GitHub prueba la migración y la aplica a **prueba**. A producción se aplica a mano desde *Actions → Base de datos → produccion*. Nunca se editan migraciones ya aplicadas.
 
 Pruebas automáticas, en cada cambio:
-- 52 de permisos y reglas en la base, y 46 de las funciones nuevas (búsqueda, aumentos, revisar, repetidos).
-- 23 unitarias de TypeScript.
+- 52 de permisos y reglas en la base, 46 de las funciones nuevas (búsqueda, aumentos, revisar, repetidos) y 36 de la carga desde factura.
+- 34 unitarias de TypeScript.
 - 4 de la migración en Python.
-- 22 de punta a punta en un navegador: catálogo, búsqueda con errores, marcas, Armá tu consulta, separación de dominios, login con Google, aprobación, escaneo, alta con foto, autocompletar, carga masiva, cambios en lote, historial, aumentos de precio, revisar, repetidos e imagen para compartir.
+- 25 de punta a punta en un navegador: catálogo, búsqueda con errores, marcas, Armá tu consulta, separación de dominios, login con Google, aprobación, escaneo, alta con foto, autocompletar, carga masiva, cambios en lote, historial, aumentos de precio, revisar, repetidos, imagen para compartir y carga desde factura (con un PDF de ejemplo armado en la prueba).
 - Verificación de que la app compila para Cloudflare Workers.
 
 Ver `e2e/README.md`.

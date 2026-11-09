@@ -205,6 +205,8 @@ export type Database = {
       pendientes_revision: { Args: { p_dias?: number; p_limite?: number }; Returns: { total: number; items: ItemRevision[] } };
       marcar_revisado: { Args: { p_ids: string[] }; Returns: number };
       datos_faltantes: { Args: { p_limite?: number }; Returns: Partial<Record<GrupoFaltante, { total: number; items: ItemSimple[] }>> };
+      analizar_factura: { Args: { p_proveedor: string; p_numero: string | null; p_articulos: Json }; Returns: AnalisisFactura };
+      cargar_factura: { Args: { p_datos: Json }; Returns: ResultadoCargaFactura };
       buscar_catalogo: {
         Args: { p_q?: string | null; p_categoria?: string | null; p_marca?: string | null; p_filtro?: string | null; p_desde?: number; p_cantidad?: number };
         Returns: ResultadoBusqueda;
@@ -237,3 +239,19 @@ export type FichaCorta = {
   precio: number | null; marca: string | null; ruta_thumb: string | null; codigos: string[];
 };
 export type ParRepetido = { a: FichaCorta; b: FichaCorta; motivos: ("nombre" | "foto")[]; puntaje: number };
+
+/** Resultado de analizar_factura: qué pasa con cada código de la factura. */
+export type ItemFacturaExiste = {
+  codigo: string; estado: "existe"; producto: FichaCorta & { costo: number | null }; precio_sugerido: number | null;
+};
+export type ItemFacturaNuevo = {
+  codigo: string; estado: "nuevo" | "parecido"; parecidos: (FichaCorta & { parecido: number })[];
+  en_lista: boolean; categoria_id: number; marca_id: number | null; precio_sugerido: number | null;
+};
+export type ItemFactura = ItemFacturaExiste | ItemFacturaNuevo;
+export type AnalisisFactura = {
+  proveedor_id: number;
+  ya_cargada: { fecha: string; usuario: string | null; creados: number } | null;
+  items: ItemFactura[];
+};
+export type ResultadoCargaFactura = { creados: { id: string; sku: string; nombre: string }[]; vinculados: number; costos: number };
