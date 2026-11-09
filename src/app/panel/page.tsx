@@ -9,6 +9,7 @@ import { useCargar } from "@/componentes/panel/useCargar";
 function Inicio() {
   const abrir = useSearchParams().get("escanear") === "1";
   const { datos: r } = useCargar(async () => (await supabaseNavegador().rpc("resumen_panel")).data);
+  const { datos: aRevisar } = useCargar(async () => (await supabaseNavegador().rpc("pendientes_revision", { p_dias: 60, p_limite: 1 })).data?.total ?? 0);
   const tarjetas = r
     ? [
         { n: r.publicados, t: "Publicados", href: "/panel/articulos" },
@@ -30,6 +31,15 @@ function Inicio() {
           </Link>
         ))}
       </section>
+      {!!aRevisar && (
+        <Link href="/panel/revisar" className="tarjeta flex items-center gap-3 border-amber-300 bg-amber-50 p-4 hover:border-coral">
+          <span className="text-2xl" aria-hidden>🔎</span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-medium">{aRevisar.toLocaleString("es-AR")} artículos para revisar</span>
+            <span className="block text-sm text-suave">Nadie los tocó en 2 meses: ¿siguen habiendo?</span>
+          </span>
+        </Link>
+      )}
     </div>
   );
 }

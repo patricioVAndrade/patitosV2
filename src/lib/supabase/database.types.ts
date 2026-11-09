@@ -194,6 +194,9 @@ export type Database = {
         Returns: ResultadoAjuste;
       };
       revertir_ajuste: { Args: { p_ajuste: number }; Returns: { revertidos: number; respetados: number } };
+      pendientes_revision: { Args: { p_dias?: number; p_limite?: number }; Returns: { total: number; items: ItemRevision[] } };
+      marcar_revisado: { Args: { p_ids: string[] }; Returns: number };
+      datos_faltantes: { Args: { p_limite?: number }; Returns: Partial<Record<GrupoFaltante, { total: number; items: ItemSimple[] }>> };
       buscar_catalogo: {
         Args: { p_q?: string | null; p_categoria?: string | null; p_marca?: string | null; p_filtro?: string | null; p_desde?: number; p_cantidad?: number };
         Returns: ResultadoBusqueda;
@@ -216,3 +219,7 @@ export type ItemAjuste = {
   precio_antes: number | null; precio_nuevo: number | null; costo_antes: number | null; costo_nuevo: number | null;
 };
 export type ResultadoAjuste = { cantidad: number; redondeo: number; items: ItemAjuste[]; ajuste_id: number | null };
+
+export type ItemSimple = { id: string; sku: string; nombre: string; ruta_thumb: string | null };
+export type ItemRevision = ItemSimple & { disponibilidad: Disponibilidad; precio: number | null; ultima_vez: string };
+export type GrupoFaltante = "sin_foto" | "sin_precio" | "sin_marca" | "nombre_corto" | "en_varios" | "oferta_sin_antes" | "agotado_viejo";
