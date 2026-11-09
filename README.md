@@ -103,6 +103,14 @@ La app también corre sin cambios en cualquier servidor Node, con el `Dockerfile
   - Los empleados *ocultan* o *archivan*, que se puede deshacer.
 - **Duplicar**: en el editor, para el mismo artículo en otro color o modelo. Copia datos y fotos; la foto no ocupa espacio de más.
 - **Colores / modelos**: campo de texto libre opcional ("rojo, azul", "modelos surtidos"). Se muestra en la ficha y entra en la búsqueda. Si un mismo artículo tiene un código por color, se cargan todos los códigos en el mismo artículo.
+- **¿Ya está cargado?**: al escribir el nombre o elegir la foto, el editor y la carga masiva avisan si hay otro artículo con un nombre casi igual (con los mismos números: 9″ ≠ 11″) o con una foto casi igual.
+- **Compartir**: en el editor, arma una imagen para historias de Instagram, estados de WhatsApp o publicaciones.
+- **Más** (en el celular) tiene las herramientas:
+  - **¿Sigue habiendo?**: artículos que nadie tocó en un tiempo, con botones *Sí hay / Pocas / Agotado / Ocultar*, y **Datos que faltan** (sin foto, sin precio, sin marca…).
+  - **Repetidos**: pares para revisar; *Dejar este* une los dos (códigos, fotos, datos) y el link del otro redirige.
+  - **Precios**: aumentos o rebajas en % por marca, proveedor o categoría, con vista previa, redondeo, opción de costo y *Deshacer*.
+
+En la web, los clientes tienen además: búsqueda que perdona errores ("pelpta" → pelota), páginas por marca (`/m/duravit`) y **Armá tu consulta** (juntan varios artículos y mandan un solo WhatsApp).
 
 ## Desarrollo
 
@@ -122,10 +130,10 @@ Para cambiar la base:
 GitHub prueba la migración y la aplica a **prueba**. A producción se aplica a mano desde *Actions → Base de datos → produccion*. Nunca se editan migraciones ya aplicadas.
 
 Pruebas automáticas, en cada cambio:
-- 46 de permisos y reglas en la base.
-- 11 unitarias de TypeScript.
-- 3 de la migración en Python.
-- 14 de punta a punta en un navegador: catálogo, separación de dominios, login con Google, aprobación, escaneo, alta con foto, autocompletar, carga masiva, cambios en lote e historial.
+- 52 de permisos y reglas en la base, y 46 de las funciones nuevas (búsqueda, aumentos, revisar, repetidos).
+- 23 unitarias de TypeScript.
+- 4 de la migración en Python.
+- 22 de punta a punta en un navegador: catálogo, búsqueda con errores, marcas, Armá tu consulta, separación de dominios, login con Google, aprobación, escaneo, alta con foto, autocompletar, carga masiva, cambios en lote, historial, aumentos de precio, revisar, repetidos e imagen para compartir.
 - Verificación de que la app compila para Cloudflare Workers.
 
 Ver `e2e/README.md`.

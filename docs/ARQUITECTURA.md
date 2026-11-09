@@ -56,7 +56,7 @@ config (margen, redondeo, admins iniciales)
 
 Las vistas públicas son *security definer* a propósito: el linter de Supabase las va a marcar, pero filtran por `estado = 'publicado'` y exponen solo columnas seguras.
 
-Las 46 pruebas de `supabase/tests/permisos.test.sql` verifican todo esto en cada cambio.
+Las pruebas de `supabase/tests/*.test.sql` verifican todo esto en cada cambio.
 
 ## Estructura del código
 
@@ -101,7 +101,6 @@ Ejemplo: **aumento de precios por marca**, que ya tiene la estructura creada.
 
 | Futuro | Qué ya existe |
 |---|---|
-| **Aumentos masivos** por marca, proveedor o categoría | `marcas`, `proveedores`, `productos.marca_id/proveedor_id`, `ajustes_precio`, `historial_precios` (registra desde el día 1), `config.margen/redondeo`. La migración ya asigna marcas por nombre. |
 | **Stock real** (etapa 2) | `movimientos_stock` (ingreso / venta / ajuste / devolución / conteo / traslado; no se edita ni borra), `ubicaciones`, `productos.controla_stock`. Falta: la función `registrar_movimiento`, el cálculo de disponibilidad cuando `controla_stock` y las pantallas *Ingreso de mercadería* / *Venta rápida* / *Conteo*. |
 | **Filtro por edad** en el catálogo | `edad_desde_meses`, `edad_hasta_meses` (ya se cargan en el editor). |
 | **Campañas** (Día del Niño, Navidad) | `etiquetas` + `producto_etiquetas`; con `visible = true` se pueden mostrar como filtro público. |
@@ -117,3 +116,14 @@ Ejemplo: **aumento de precios por marca**, que ya tiene la estructura creada.
 - **Funciones RPC para operaciones compuestas** (`guardar_producto`): artículo + códigos + fotos + etiquetas + costo se guardan en una sola transacción. Si algo falla, no queda nada a medias.
 - **Lector de códigos**: el nativo del navegador (Android) y, si no existe (iPhone/PC), ZXing en WebAssembly servido desde el propio sitio. No hace falta lectora física ni Python en el celular; una lectora USB también funciona porque se comporta como un teclado.
 - **No** se hizo facturación ni carrito: la facturación electrónica conviene integrarla con un sistema que ya exista, y el carrito recién tiene sentido con stock confiable.
+
+## Funciones agregadas después
+
+| Función | Dónde |
+|---|---|
+| Búsqueda que perdona errores | `buscar_catalogo()` (pg_trgm contra el vocabulario del catálogo; exactos primero) |
+| Páginas por marca | vista pública `v_marcas`, ruta `/m/[slug]` |
+| Armá tu consulta | solo en el navegador del cliente (`src/lib/tienda/consulta.ts`), sin datos en el servidor |
+| Aumentos de precio | `ajustar_precios()` / `revertir_ajuste()`, detalle en `ajustes_detalle` |
+| ¿Sigue habiendo? | tabla `revisiones` (no toca la fecha del artículo), `pendientes_revision()`, `datos_faltantes()` |
+| Repetidos | `posibles_repetidos()`, `fotos_parecidas()` (huella dHash de 256 bits en `imagenes.huella`), `pares_repetidos()`, `unir_productos()`; el link del unido redirige con `redireccion_producto()` |
