@@ -60,7 +60,7 @@ jobs:
           psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f supabase/tests/00_stubs_locales.sql
           for f in supabase/migrations/*.sql; do psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f "$f"; done
       - name: Pruebas de permisos
-        run: psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f supabase/tests/permisos.test.sql
+        run: for f in supabase/tests/*.test.sql; do echo "▶ $f"; psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f "$f"; done
 
   e2e:
     name: Pruebas de punta a punta

@@ -35,7 +35,7 @@ test.describe("Catálogo público", () => {
     await page.getByLabel("Buscar en el catálogo").fill("pelota futbol");
     await expect(page).toHaveURL(/q=pelota/);
     await expect(page.locator("article").first()).toContainText(/pelota/i);
-    await page.locator("article a").nth(1).click();
+    await page.locator("article").first().getByRole("link", { name: /pelota/i }).click();
     await expect(page).toHaveURL(/\/p\/PB-\d{6}\//);
     await expect(page.getByRole("heading", { level: 1 })).toContainText(/pelota/i);
     await expect(page.getByRole("link", { name: /Consultar por WhatsApp|Avisame/ }).first()).toHaveAttribute("href", /wa\.me\/5493582405970/);
@@ -83,7 +83,10 @@ test.describe("Panel", () => {
     await ingresarCon(page, ADMIN, "Pato");
     await expect(page).toHaveURL(/\/panel$/);
     await expect(page.getByText("Publicados")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Usuarios" }).first()).toBeVisible();
+    // en el celular, las herramientas (Usuarios, Historial, Precios…) están en "Más"
+    await page.getByRole("link", { name: "Más" }).click();
+    await expect(page.getByRole("link", { name: /Usuarios/ })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Historial/ })).toBeVisible();
   });
 
   test("una empleada nueva queda pendiente hasta que el admin la aprueba", async ({ browser }) => {
@@ -104,8 +107,11 @@ test.describe("Panel", () => {
     await emp.waitForLoadState("networkidle");
     await expect(emp).toHaveURL(/\/panel$/);
     // una empleada no ve Usuarios ni Historial (logs)…
-    await expect(emp.getByRole("link", { name: "Usuarios" })).toHaveCount(0);
-    await expect(emp.getByRole("link", { name: "Historial" })).toHaveCount(0);
+    await emp.getByRole("link", { name: "Más" }).click();
+    await expect(emp.getByRole("link", { name: /Precios/ })).toBeVisible();   // las herramientas de todos sí
+    await expect(emp.getByRole("link", { name: /Usuarios/ })).toHaveCount(0);
+    await expect(emp.getByRole("link", { name: /Historial/ })).toHaveCount(0);
+    await emp.getByRole("link", { name: "Inicio" }).click();
     // …pero sí ve y carga costos; no puede eliminar definitivamente
     await emp.getByLabel("Código").fill("WIL225199");
     await emp.getByRole("button", { name: "Buscar" }).click();
@@ -188,7 +194,7 @@ test.describe("Panel", () => {
     await expect(page.locator("article")).toHaveCount(2);
     const fotos = await page.locator("article img").evaluateAll((imgs) => imgs.map((i) => (i as HTMLImageElement).src));
     expect(fotos[0]).toBe(fotos[1]); // misma foto, no se subió dos veces
-    await page.locator("article", { hasText: /azul/i }).locator("a").nth(1).click();
+    await page.locator("article", { hasText: /azul/i }).getByRole("link", { name: /azul/i }).click();
     await expect(page.getByText("Colores / modelos", { exact: true })).toBeVisible();
     await expect(page.getByText("azul, celeste")).toBeVisible();
   });
