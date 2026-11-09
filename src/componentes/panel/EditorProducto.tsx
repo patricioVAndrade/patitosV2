@@ -3,13 +3,14 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { supabaseNavegador } from "@/lib/supabase/cliente";
 import { comprimirFoto, subirFoto, borrarFotos, type FotoComprimida, type FotoSubida } from "@/lib/imagenes";
-import { esCodigoDeBarras, normalizar, urlFoto, urlProducto } from "@/lib/formato";
+import { esCodigoDeBarras, marcaVisible, nombreVisible, normalizar, urlFoto, urlProducto } from "@/lib/formato";
 import { mensajeError } from "@/lib/errores";
 import { env } from "@/lib/env";
 import { esquemaProducto } from "@/lib/validacion";
 import type { Disponibilidad, EstadoProducto, ItemLista, Producto, TipoCodigo } from "@/lib/supabase/database.types";
 import { usePanel } from "./ContextoPanel";
 import { Escaner } from "./Escaner";
+import { CompartirImagen } from "./CompartirImagen";
 import { IconoBasura, IconoCamara, IconoEscanear, IconoFlechaDer, IconoFlechaIzq, IconoFotos } from "@/componentes/ui/Iconos";
 
 type CodigoEd = { codigo: string; tipo: TipoCodigo; proveedor_id: number | null };
@@ -251,6 +252,21 @@ export function EditorProducto({ iniciales, listas, aviso, continuo, verCostos, 
           <div className="flex items-center gap-2 text-sm">
             <span className="font-mono text-suave">{p.sku}</span>
             {p.estado === "publicado" && <a href={`${env.sitioUrl}${urlProducto(p)}`} target="_blank" rel="noopener" className="btn-claro px-3 py-1 text-xs">Ver en la web</a>}
+            <CompartirImagen
+              sku={p.sku}
+              link={`${env.sitioUrl}${urlProducto(p)}`}
+              datos={{
+                nombre: nombreVisible(nombre || p.nombre, marcaTexto),
+                marca: marcaTexto.trim() ? marcaVisible(marcaTexto.trim().toUpperCase()) : null,
+                foto: fotos[0]?.existente ? urlFoto(fotos[0].existente.ruta_full) : fotos[0]?.nueva?.previa ?? null,
+                precio: num(precio),
+                precioVisible: mostrarPrecio || enOferta,
+                precioAnterior: num(precioAnterior),
+                oferta: enOferta,
+                nuevo: !!nuevoHasta && nuevoHasta >= new Date().toISOString().slice(0, 10),
+                sitio: env.sitioUrl.replace(/^https?:\/\/(www\.)?/, ""),
+              }}
+            />
             <button type="button" onClick={() => router.push(`/panel/articulos/nuevo?desde=${p.id}`)} className="btn-claro px-3 py-1 text-xs" title="Crear otro artículo con estos datos y fotos (por ejemplo, otro color)">
               Duplicar
             </button>
