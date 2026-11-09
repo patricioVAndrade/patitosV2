@@ -1,7 +1,6 @@
 import "server-only";
 import { supabasePublico } from "./supabase/servidor";
-import { palabrasBusqueda } from "./formato";
-import type { ItemCatalogo } from "./supabase/database.types";
+import type { ItemCatalogo, ResultadoBusqueda } from "./supabase/database.types";
 
 export const POR_PAGINA = 24;
 
@@ -27,23 +26,23 @@ export function leerFiltros(sp: Record<string, string | string[] | undefined>): 
   };
 }
 
-export async function buscarCatalogo(f: FiltrosCatalogo): Promise<{ items: ItemCatalogo[]; total: number }> {
-  const supabase = supabasePublico();
+/**
+ * Catálogo con filtros. La búsqueda perdona errores de tipeo ("pelpta" → pelota): primero salen
+ * los que coinciden tal cual y después los parecidos. Si ninguno coincide tal cual, `corregida`
+ * trae la búsqueda corregida para mostrar "Mostramos resultados para …".
+ */
+export async function buscarCatalogo(f: FiltrosCatalogo): Promise<ResultadoBusqueda> {
   const pagina = f.pagina ?? 1;
-  const desde = (pagina - 1) * POR_PAGINA;
-  let q = supabase.from("v_catalogo").select(COLUMNAS, { count: "exact" });
-  if (f.categoria) q = q.eq("categoria_slug", f.categoria);
-  if (f.marca) q = q.eq("marca_slug", f.marca);
-  if (f.filtro === "ofertas") q = q.eq("en_oferta", true);
-  if (f.filtro === "nuevos") q = q.eq("es_nuevo", true);
-  for (const p of palabrasBusqueda(f.q ?? "")) q = q.ilike("busqueda", `%${p}%`);
-  const { data, count, error } = await q
-    .order("agotado", { ascending: true })
-    .order("es_nuevo", { ascending: false })
-    .order("actualizado", { ascending: false })
-    .range(desde, desde + POR_PAGINA - 1);
+  const { data, error } = await supabasePublico().rpc("buscar_catalogo", {
+    p_q: f.q ?? null,
+    p_categoria: f.categoria ?? null,
+    p_marca: f.marca ?? null,
+    p_filtro: f.filtro ?? null,
+    p_desde: (pagina - 1) * POR_PAGINA,
+    p_cantidad: POR_PAGINA,
+  });
   if (error) throw new Error(`No se pudo leer el catálogo: ${error.message}`);
-  return { items: (data ?? []) as ItemCatalogo[], total: count ?? 0 };
+  return data;
 }
 
 export async function categoriasConArticulos() {
@@ -98,4 +97,15 @@ export async function relacionados(categoriaSlug: string, excluirSku: string, li
     .eq("categoria_slug", categoriaSlug).neq("sku", excluirSku).eq("agotado", false)
     .order("es_nuevo", { ascending: false }).order("actualizado", { ascending: false }).limit(limite);
   return (data ?? []) as ItemCatalogo[];
+}
+
+/** Marcas con artículos publicados (para /m/[slug], el sitemap y la portada). */
+export async function marcasConArticulos() {
+  const { data } = await supabasePublico().from("v_marcas").select("slug,nombre,cantidad").order("cantidad", { ascending: false });
+  return data ?? [];
+}
+
+export async function marcaPorSlug(slug: string) {
+  const { data } = await supabasePublico().from("v_marcas").select("slug,nombre,cantidad").eq("slug", slug).maybeSingle();
+  return data;
 }

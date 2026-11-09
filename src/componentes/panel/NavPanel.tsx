@@ -4,18 +4,33 @@ import { usePathname } from "next/navigation";
 import type { Perfil } from "@/lib/supabase/database.types";
 import { puede } from "@/lib/permisos";
 import { env } from "@/lib/env";
-import { IconoFotos, IconoInicio, IconoLista, IconoReloj, IconoSalir, IconoUsuarios } from "@/componentes/ui/Iconos";
+import { IconoEtiqueta, IconoFotos, IconoInicio, IconoLista, IconoMas, IconoReloj, IconoSalir, IconoUnir, IconoUsuarios, IconoCheck } from "@/componentes/ui/Iconos";
+
+/** Herramientas: en la PC van en la barra lateral; en el celular, dentro de "Más". */
+export function herramientasPanel(perfil: Perfil) {
+  return [
+    { href: "/panel/revisar", texto: "¿Sigue habiendo?", Icono: IconoCheck, detalle: "Artículos para revisar y datos que faltan" },
+    { href: "/panel/repetidos", texto: "Repetidos", Icono: IconoUnir, detalle: "Artículos que parecen cargados dos veces" },
+    { href: "/panel/precios", texto: "Precios", Icono: IconoEtiqueta, detalle: "Aumentos por marca, proveedor o categoría" },
+    ...(puede.verHistorial(perfil.rol) ? [{ href: "/panel/historial", texto: "Historial", Icono: IconoReloj, detalle: "Quién cambió qué y cuándo" }] : []),
+    ...(puede.administrarUsuarios(perfil.rol) ? [{ href: "/panel/usuarios", texto: "Usuarios", Icono: IconoUsuarios, detalle: "Aprobar y bloquear al personal" }] : []),
+  ];
+}
 
 export function NavPanel({ perfil }: { perfil: Perfil }) {
   const ruta = usePathname();
-  const items = [
+  type Item = { href: string; texto: string; Icono: (p: { className?: string }) => React.ReactElement; exacto?: boolean };
+  const principales: Item[] = [
     { href: "/panel", texto: "Inicio", Icono: IconoInicio, exacto: true },
     { href: "/panel/articulos", texto: "Artículos", Icono: IconoLista },
     { href: "/panel/masiva", texto: "Masiva", Icono: IconoFotos },
-    ...(puede.verHistorial(perfil.rol) ? [{ href: "/panel/historial", texto: "Historial", Icono: IconoReloj }] : []),
-    ...(puede.administrarUsuarios(perfil.rol) ? [{ href: "/panel/usuarios", texto: "Usuarios", Icono: IconoUsuarios }] : []),
   ];
-  const activo = (href: string, exacto?: boolean) => (exacto ? ruta === href : ruta.startsWith(href));
+  const herramientas = herramientasPanel(perfil);
+  const items: Item[] = [...principales, ...herramientas];
+  const enHerramienta = ruta === "/panel/mas" || herramientas.some((h) => ruta.startsWith(h.href));
+  const celular: Item[] = [...principales, { href: "/panel/mas", texto: "Más", Icono: IconoMas }];
+  const activo = (href: string, exacto?: boolean) =>
+    href === "/panel/mas" ? enHerramienta : exacto ? ruta === href : ruta.startsWith(href);
 
   return (
     <>
@@ -48,7 +63,7 @@ export function NavPanel({ perfil }: { perfil: Perfil }) {
         </div>
       </header>
       <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-borde bg-white pb-[env(safe-area-inset-bottom)] md:hidden">
-        {items.map(({ href, texto, Icono, exacto }) => (
+        {celular.map(({ href, texto, Icono, exacto }) => (
           <Link key={href} href={href} className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[0.7rem] ${activo(href, exacto) ? "font-semibold text-coral" : "text-suave"}`}>
             <Icono className="size-6" />
             {texto}

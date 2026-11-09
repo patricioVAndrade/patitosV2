@@ -4,6 +4,7 @@ import { Logo } from "@/componentes/ui/Logo";
 import { Buscador } from "@/componentes/tienda/Buscador";
 import { NavCategorias } from "@/componentes/tienda/NavCategorias";
 import { Pie } from "@/componentes/tienda/Pie";
+import { BarraConsulta } from "@/componentes/tienda/BarraConsulta";
 import { categoriasConArticulos, hayOfertasYNovedades } from "@/lib/catalogo";
 
 export default async function TiendaLayout({ children }: { children: React.ReactNode }) {
@@ -33,6 +34,7 @@ export default async function TiendaLayout({ children }: { children: React.React
       </Suspense>
       <main id="contenido" className="flex-1">{children}</main>
       <Pie />
+      <BarraConsulta />
     </div>
   );
 }

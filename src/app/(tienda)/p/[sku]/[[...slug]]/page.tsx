@@ -9,6 +9,7 @@ import { Galeria } from "@/componentes/tienda/Galeria";
 import { BotonWhatsApp } from "@/componentes/tienda/BotonWhatsApp";
 import { EtiquetaPrecio } from "@/componentes/tienda/EtiquetaPrecio";
 import { Estante } from "@/componentes/tienda/Estante";
+import { BotonAgregarConsulta } from "@/componentes/tienda/BotonAgregarConsulta";
 
 export const dynamic = "force-dynamic";
 
@@ -80,7 +81,9 @@ export default async function FichaProducto({ params }: Props) {
 
           <div className="flex flex-col gap-4 md:pt-2">
             <div>
-              {p.marca && <p className="font-bold text-celeste-texto">{marcaVisible(p.marca)}</p>}
+              {p.marca && (p.marca_slug
+                ? <Link href={`/m/${p.marca_slug}`} className="font-bold text-celeste-texto hover:underline">{marcaVisible(p.marca)}</Link>
+                : <p className="font-bold text-celeste-texto">{marcaVisible(p.marca)}</p>)}
               <h1 className="text-[1.6rem] font-bold leading-tight sm:text-[2rem]">{nombre}</h1>
             </div>
 
@@ -110,6 +113,9 @@ export default async function FichaProducto({ params }: Props) {
 
             <div className="mt-1">
               <BotonWhatsApp p={p} />
+              <div className="mt-2">
+                <BotonAgregarConsulta grande item={{ sku: p.sku, nombre: p.nombre, slug: p.slug, ruta_thumb: p.imagenes[0]?.thumb ?? null, agotado, marca: p.marca }} />
+              </div>
               <p className="mt-2 text-center text-sm text-gris">
                 {agotado ? "Te escribimos cuando vuelva a entrar." : "Te respondemos en el horario del local."}
               </p>

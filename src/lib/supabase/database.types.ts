@@ -170,11 +170,13 @@ export type Database = {
       historial_precios: Tabla<HistorialPrecio, "producto_id">;
       productos_privado: Tabla<ProductoPrivado, "producto_id">;
       config: Tabla<{ clave: string; valor: Json; descripcion: string | null }, "clave" | "valor">;
+      ajustes_precio: Tabla<AjustePrecio, "descripcion" | "criterio" | "porcentaje">;
     };
     Views: {
       v_catalogo: { Row: ItemCatalogo; Relationships: [] };
       v_producto: { Row: FichaProducto; Relationships: [] };
       v_categorias: { Row: { id: number; nombre: string; slug: string; orden: number; cantidad: number }; Relationships: [] };
+      v_marcas: { Row: { slug: string; nombre: string; cantidad: number }; Relationships: [] };
     };
     Functions: {
       guardar_producto: { Args: { datos: Json }; Returns: { id: string; sku: string; fotos_quitadas: string[] } };
@@ -187,8 +189,30 @@ export type Database = {
       };
       precio_sugerido: { Args: { p_costo: number }; Returns: number | null };
       fotos_sin_uso: { Args: { p_rutas: string[] }; Returns: string[] };
+      ajustar_precios: {
+        Args: { p_criterio: Json; p_porcentaje: number; p_redondeo?: number | null; p_tambien_costo?: boolean; p_aplicar?: boolean };
+        Returns: ResultadoAjuste;
+      };
+      revertir_ajuste: { Args: { p_ajuste: number }; Returns: { revertidos: number; respetados: number } };
+      buscar_catalogo: {
+        Args: { p_q?: string | null; p_categoria?: string | null; p_marca?: string | null; p_filtro?: string | null; p_desde?: number; p_cantidad?: number };
+        Returns: ResultadoBusqueda;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };
 }
+
+/** Resultado de buscar_catalogo: `exactos` cuenta los que coinciden tal cual; `corregida` es la búsqueda corregida. */
+export type ResultadoBusqueda = { total: number; exactos: number; items: ItemCatalogo[]; corregida: string | null };
+
+export type AjustePrecio = {
+  id: number; fecha: string; usuario_id: string | null; descripcion: string; criterio: Json;
+  porcentaje: number; redondeo: number; cantidad: number; revertido: boolean;
+};
+export type ItemAjuste = {
+  id: string; sku: string; nombre: string; estado: EstadoProducto;
+  precio_antes: number | null; precio_nuevo: number | null; costo_antes: number | null; costo_nuevo: number | null;
+};
+export type ResultadoAjuste = { cantidad: number; redondeo: number; items: ItemAjuste[]; ajuste_id: number | null };

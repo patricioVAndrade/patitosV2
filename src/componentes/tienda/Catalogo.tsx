@@ -1,8 +1,8 @@
 import Link from "next/link";
 import {
-  buscarCatalogo, categoriasConArticulos, categoriasConFoto, novedades, ofertas, POR_PAGINA, type FiltrosCatalogo,
+  buscarCatalogo, categoriasConArticulos, categoriasConFoto, marcasConArticulos, novedades, ofertas, POR_PAGINA, type FiltrosCatalogo,
 } from "@/lib/catalogo";
-import { urlFoto } from "@/lib/formato";
+import { marcaVisible, urlFoto } from "@/lib/formato";
 import { ListaProductos } from "./ListaProductos";
 import { TarjetaProducto } from "./TarjetaProducto";
 import { Estante } from "./Estante";
@@ -10,16 +10,17 @@ import { Estante } from "./Estante";
 const cantidad = (n: number) => `${n.toLocaleString("es-AR")} artículo${n === 1 ? "" : "s"}`;
 
 /** Inicio sin filtros: vidriera (recién llegados → ofertas → categorías → todo). Con filtros: resultados. */
-export async function Catalogo({ filtros }: { filtros: FiltrosCatalogo }) {
+export async function Catalogo({ filtros, titulo }: { filtros: FiltrosCatalogo; titulo?: string }) {
   const portada = !filtros.q && !filtros.categoria && !filtros.marca && !filtros.filtro && (filtros.pagina ?? 1) === 1;
-  return portada ? <Portada /> : <Resultados filtros={filtros} />;
+  return portada ? <Portada /> : <Resultados filtros={filtros} tituloFijo={titulo} />;
 }
 
 async function Portada() {
-  const [nuevos, enOferta, categorias, todo] = await Promise.all([
+  const [nuevos, enOferta, categorias, marcas, todo] = await Promise.all([
     novedades(12),
     ofertas(8),
     categoriasConFoto(),
+    marcasConArticulos(),
     buscarCatalogo({}),
   ]);
 
@@ -68,6 +69,21 @@ async function Portada() {
         </section>
       )}
 
+      {marcas.length > 0 && (
+        <section aria-labelledby="t-marcas" className="mx-auto max-w-6xl px-4 pt-12">
+          <Encabezado id="t-marcas" titulo="Marcas" />
+          <ul className="flex flex-wrap gap-2">
+            {marcas.slice(0, 24).map((m) => (
+              <li key={m.slug}>
+                <Link href={`/m/${m.slug}`} className="chip-tienda">
+                  {marcaVisible(m.nombre)}<span className="ml-1.5 font-normal text-gris">{m.cantidad}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section aria-labelledby="t-todo" className="mx-auto max-w-6xl px-4 pt-12">
         <Encabezado id="t-todo" titulo="Todo el catálogo" bajada={todo.total ? `${cantidad(todo.total)} en el local.` : undefined} />
         <ListaProductos iniciales={todo.items} total={todo.total} porPagina={POR_PAGINA} paginaInicial={1} consulta={{}} />
@@ -76,10 +92,12 @@ async function Portada() {
   );
 }
 
-async function Resultados({ filtros }: { filtros: FiltrosCatalogo }) {
-  const [{ items, total }, categorias] = await Promise.all([buscarCatalogo(filtros), categoriasConArticulos()]);
+async function Resultados({ filtros, tituloFijo }: { filtros: FiltrosCatalogo; tituloFijo?: string }) {
+  const [{ items, total, exactos, corregida }, categorias] = await Promise.all([buscarCatalogo(filtros), categoriasConArticulos()]);
   const categoria = categorias.find((c) => c.slug === filtros.categoria)?.nombre;
-  const titulo = filtros.filtro === "ofertas" ? "Ofertas" : filtros.filtro === "nuevos" ? "Recién llegados" : categoria ?? "Catálogo";
+  const titulo = tituloFijo ?? (filtros.filtro === "ofertas" ? "Ofertas" : filtros.filtro === "nuevos" ? "Recién llegados" : categoria ?? "Catálogo");
+  // "pelpta" no está tal cual, pero "pelota" sí: se avisa qué se buscó en realidad
+  const corregido = filtros.q && total > 0 && exactos === 0 && corregida ? corregida : null;
   const detalle = [
     filtros.q ? `para “${filtros.q}”` : null,
     filtros.filtro && categoria ? `en ${categoria}` : null,
@@ -89,8 +107,13 @@ async function Resultados({ filtros }: { filtros: FiltrosCatalogo }) {
     <section aria-labelledby="t-resultados" className="mx-auto max-w-6xl px-4 pt-7">
       <h1 id="t-resultados" className="titulo-seccion">{titulo}</h1>
       <p className="mb-5 mt-1 text-gris" aria-live="polite">
-        {total === 0 ? "Sin resultados" : cantidad(total)}{detalle ? ` ${detalle}` : ""}
+        {total === 0 ? "Sin resultados" : cantidad(total)}{corregido ? ` para “${corregido}”` : detalle ? ` ${detalle}` : ""}
       </p>
+      {corregido && (
+        <p className="-mt-3 mb-5 text-sm text-gris">
+          No encontramos “{filtros.q}” tal cual, así que te mostramos lo más parecido.
+        </p>
+      )}
 
       {total === 0 ? (
         <div className="rounded-[1.25rem] border-2 border-dashed border-linea px-6 py-12 text-center">

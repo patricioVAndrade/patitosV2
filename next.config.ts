@@ -17,6 +17,7 @@ const apex = sitioHost?.startsWith("www.") ? sitioHost.slice(4) : undefined; // 
 const RUTAS_PANEL = ["/panel", "/panel/:ruta*", "/ingresar", "/pendiente", "/auth/:ruta*"];
 const RUTAS_TIENDA: [string, string][] = [
   ["/c/:ruta+", "/c/:ruta+"],
+  ["/m/:ruta+", "/m/:ruta+"],
   ["/p/:ruta+", "/p/:ruta+"],
   ["/sitemap.xml", "/sitemap.xml"],
   ["/api/catalogo", "/api/catalogo"],
