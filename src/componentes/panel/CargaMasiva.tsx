@@ -7,6 +7,7 @@ import { mensajeError } from "@/lib/errores";
 import { usePanel } from "./ContextoPanel";
 import { Escaner } from "./Escaner";
 import { IconoCerrar, IconoEscanear, IconoFotos } from "@/componentes/ui/Iconos";
+import { AvisoRepetidos } from "./AvisoRepetidos";
 
 type Estado = "comprimiendo" | "listo" | "subiendo" | "ok" | "error";
 interface Borrador { id: string; foto?: FotoComprimida; nombre: string; codigo: string; precio: string; estado: Estado; mensaje?: string }
@@ -88,6 +89,7 @@ export function CargaMasiva({ categorias, marcas }: { categorias: { id: number; 
           },
         });
         if (error) throw error;
+        await supabase.rpc("guardar_huellas", { p_datos: [{ ruta_thumb: subida.ruta_thumb, huella: b.foto!.huella }] });
         ok++;
         actualizar(b.id, { estado: "ok", mensaje: `Publicado ${data.sku}` });
       } catch (e) {
@@ -156,6 +158,9 @@ export function CargaMasiva({ categorias, marcas }: { categorias: { id: number; 
                   <button type="button" onClick={() => setBorradores((bs) => bs.filter((x) => x.id !== b.id))} className="btn-claro px-2 text-red-600" aria-label="Quitar"><IconoCerrar className="size-4" /></button>
                 )}
               </div>
+              {b.estado !== "ok" && (
+                <AvisoRepetidos compacto nombre={b.nombre} huellas={b.foto ? [b.foto.huella] : []} />
+              )}
               <p className={`text-xs ${b.estado === "error" ? "text-red-600" : "text-suave"}`} data-testid="estado-borrador">
                 {b.estado === "comprimiendo" ? "Comprimiendo…" : b.estado === "subiendo" ? "Subiendo…" : b.mensaje ?? (b.foto ? `${Math.round((b.foto.thumb.size + b.foto.full.size) / 1024)} KB` : "")}
               </p>

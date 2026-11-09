@@ -11,6 +11,7 @@ import type { Disponibilidad, EstadoProducto, ItemLista, Producto, TipoCodigo } 
 import { usePanel } from "./ContextoPanel";
 import { Escaner } from "./Escaner";
 import { CompartirImagen } from "./CompartirImagen";
+import { AvisoRepetidos } from "./AvisoRepetidos";
 import { IconoBasura, IconoCamara, IconoEscanear, IconoFlechaDer, IconoFlechaIzq, IconoFotos } from "@/componentes/ui/Iconos";
 
 type CodigoEd = { codigo: string; tipo: TipoCodigo; proveedor_id: number | null };
@@ -202,12 +203,14 @@ export function EditorProducto({ iniciales, listas, aviso, continuo, verCostos, 
       const marca_id = await resolverMarca();
       // 1) subir fotos nuevas (en paralelo, de a 3)
       const lista: FotoSubida[] = [];
+      const huellas: { ruta_thumb: string; huella: string }[] = [];
       for (const f of fotos) {
         if (f.existente) lista.push(f.existente);
         else if (f.nueva) {
           const s = await subirFoto(supabase, f.nueva);
           subidas.push(s);
           lista.push(s);
+          huellas.push({ ruta_thumb: s.ruta_thumb, huella: f.nueva.huella });
         }
       }
       // 2) guardar todo en una sola transacción
@@ -216,6 +219,8 @@ export function EditorProducto({ iniciales, listas, aviso, continuo, verCostos, 
       if (error) throw error;
       // 3) liberar espacio: borrar del storage las fotos que se quitaron
       if (data.fotos_quitadas.length) await borrarFotos(supabase, data.fotos_quitadas);
+      // huellas de las fotos nuevas, para detectar repetidos (si falla no importa: se recalculan después)
+      if (huellas.length) await supabase.rpc("guardar_huellas", { p_datos: huellas });
       try { localStorage.setItem("ultimaCategoria", String(categoriaId)); } catch { /* sin storage */ }
       avisar(p ? "Cambios guardados ✔" : `Publicado ✔ ${data.sku}`);
       if (continuo && !p) router.push("/panel?escanear=1");
@@ -337,6 +342,7 @@ export function EditorProducto({ iniciales, listas, aviso, continuo, verCostos, 
             </ul>
           )}
         </div>
+        <AvisoRepetidos nombre={nombre} huellas={fotos.flatMap((f) => (f.nueva ? [f.nueva.huella] : []))} excluir={p?.id} />
 
         <div>
           <label htmlFor="variantes" className="etiqueta-campo">Colores / modelos <span className="font-normal">(opcional)</span></label>

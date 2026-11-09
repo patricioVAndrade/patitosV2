@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
-import { fichaProducto, relacionados } from "@/lib/catalogo";
+import { fichaProducto, redireccionProducto, relacionados } from "@/lib/catalogo";
 import { edadTexto, marcaVisible, moneda, nombreVisible, urlFoto, urlProducto } from "@/lib/formato";
 import { env } from "@/lib/env";
 import { negocio } from "@/lib/negocio";
@@ -37,7 +37,12 @@ const ESTADO = {
 export default async function FichaProducto({ params }: Props) {
   const { sku, slug } = await params;
   const p = await fichaProducto(decodeURIComponent(sku));
-  if (!p) notFound();
+  if (!p) {
+    // un artículo repetido que se unió a otro: su link viejo lleva al que quedó
+    const destino = await redireccionProducto(decodeURIComponent(sku));
+    if (destino) permanentRedirect(`/p/${destino.sku}/${destino.slug}`);
+    notFound();
+  }
   // Si cambió el nombre, el link viejo redirige al nuevo (el SKU no cambia nunca)
   if ((slug?.[0] ?? "") !== p.slug) permanentRedirect(urlProducto(p));
 

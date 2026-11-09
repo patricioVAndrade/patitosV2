@@ -194,6 +194,14 @@ export type Database = {
         Returns: ResultadoAjuste;
       };
       revertir_ajuste: { Args: { p_ajuste: number }; Returns: { revertidos: number; respetados: number } };
+      posibles_repetidos: { Args: { p_nombre: string; p_excluir?: string | null; p_limite?: number }; Returns: FichaCorta[] };
+      fotos_parecidas: { Args: { p_huellas: string[]; p_excluir?: string | null; p_limite?: number }; Returns: FichaCorta[] };
+      guardar_huellas: { Args: { p_datos: Json }; Returns: number };
+      fotos_sin_huella: { Args: { p_limite?: number }; Returns: { total: number; rutas: string[] } };
+      pares_repetidos: { Args: { p_limite?: number }; Returns: { total: number; pares: ParRepetido[] } };
+      descartar_repetido: { Args: { p_a: string; p_b: string }; Returns: undefined };
+      unir_productos: { Args: { p_queda: string; p_sale: string }; Returns: { sku: string; archivado: string } };
+      redireccion_producto: { Args: { p_sku: string }; Returns: { sku: string; slug: string } | null };
       pendientes_revision: { Args: { p_dias?: number; p_limite?: number }; Returns: { total: number; items: ItemRevision[] } };
       marcar_revisado: { Args: { p_ids: string[] }; Returns: number };
       datos_faltantes: { Args: { p_limite?: number }; Returns: Partial<Record<GrupoFaltante, { total: number; items: ItemSimple[] }>> };
@@ -223,3 +231,9 @@ export type ResultadoAjuste = { cantidad: number; redondeo: number; items: ItemA
 export type ItemSimple = { id: string; sku: string; nombre: string; ruta_thumb: string | null };
 export type ItemRevision = ItemSimple & { disponibilidad: Disponibilidad; precio: number | null; ultima_vez: string };
 export type GrupoFaltante = "sin_foto" | "sin_precio" | "sin_marca" | "nombre_corto" | "en_varios" | "oferta_sin_antes" | "agotado_viejo";
+
+export type FichaCorta = {
+  id: string; sku: string; nombre: string; estado: EstadoProducto; disponibilidad: Disponibilidad;
+  precio: number | null; marca: string | null; ruta_thumb: string | null; codigos: string[];
+};
+export type ParRepetido = { a: FichaCorta; b: FichaCorta; motivos: ("nombre" | "foto")[]; puntaje: number };

@@ -17,6 +17,7 @@ export type FotoComprimida = {
   alto: number;
   previa: string; // URL local para mostrarla antes de subir
   pesoOriginal: number;
+  huella: string;  // huella de la foto (256 bits en hexadecimal) para detectar repetidas
 }
 
 export type FotoSubida = {
@@ -69,6 +70,52 @@ function calcularRecorte(fuente: ImageBitmap | HTMLImageElement): Rect {
   return w * h > fuente.width * fuente.height * 0.97 ? completo : { x, y, w, h };
 }
 
+/**
+ * "Huella" de una imagen para encontrar fotos repetidas (dHash de 256 bits, en hexadecimal).
+ * Se achica a 17×16 en grises promediando bloques (así da lo mismo en el celular y en la PC)
+ * y se compara cada píxel con el de al lado. Dos fotos casi iguales, aunque cambie el tamaño,
+ * el recorte o la compresión, quedan a pocos bits de distancia; fotos de productos distintos, lejos.
+ */
+export function huellaDe(fuente: CanvasImageSource): string {
+  const W = 17, H = 16, B = 4; // se dibuja a 68×64 y se promedian bloques de 4×4
+  const c = document.createElement("canvas");
+  c.width = W * B;
+  c.height = H * B;
+  const ctx = c.getContext("2d", { willReadFrequently: true })!;
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, c.width, c.height);
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(fuente, 0, 0, c.width, c.height);
+  const px = ctx.getImageData(0, 0, c.width, c.height).data;
+  const gris = new Float32Array(W * H);
+  for (let y = 0; y < c.height; y++) {
+    for (let x = 0; x < c.width; x++) {
+      const i = (y * c.width + x) * 4;
+      gris[Math.floor(y / B) * W + Math.floor(x / B)]! += px[i]! * 0.299 + px[i + 1]! * 0.587 + px[i + 2]! * 0.114;
+    }
+  }
+  let hex = "";
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W - 1; x += 4) {
+      let nibble = 0;
+      for (let k = 0; k < 4; k++) nibble = (nibble << 1) | (gris[y * W + x + k]! < gris[y * W + x + k + 1]! ? 1 : 0);
+      hex += nibble.toString(16);
+    }
+  }
+  return hex; // 64 caracteres = 256 bits
+}
+
+/** Huella de una foto ya subida (para analizar las fotos viejas). */
+export async function huellaDeUrl(url: string): Promise<string | null> {
+  return new Promise((ok) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => { try { ok(huellaDe(img)); } catch { ok(null); } };
+    img.onerror = () => ok(null);
+    img.src = url;
+  });
+}
+
 /** Foto final: cuadrada, fondo blanco, producto centrado con margen parejo. */
 async function generar(fuente: ImageBitmap | HTMLImageElement, recorte: Rect, lado: number, calidad: number) {
   const l = lienzoCuadrado(recorte, lado);
@@ -85,7 +132,7 @@ async function generar(fuente: ImageBitmap | HTMLImageElement, recorte: Rect, la
   // Safari viejo no genera WebP (devuelve PNG): usamos JPEG
   if (!blob || blob.type !== "image/webp") blob = await aBlob(canvas, "image/jpeg", Math.min(calidad + 0.05, 0.9));
   if (!blob) throw new Error("No se pudo comprimir la imagen");
-  return { blob, w: l.lienzo, h: l.lienzo };
+  return { blob, w: l.lienzo, h: l.lienzo, canvas };
 }
 
 export async function comprimirFoto(file: File | Blob): Promise<FotoComprimida> {
@@ -94,7 +141,7 @@ export async function comprimirFoto(file: File | Blob): Promise<FotoComprimida> 
   const t = await generar(fuente, recorte, TAMANIOS.thumb.lado, TAMANIOS.thumb.calidad);
   const f = await generar(fuente, recorte, TAMANIOS.full.lado, TAMANIOS.full.calidad);
   if ("close" in fuente) fuente.close();
-  return { thumb: t.blob, full: f.blob, ancho: f.w, alto: f.h, previa: URL.createObjectURL(t.blob), pesoOriginal: file.size };
+  return { thumb: t.blob, full: f.blob, ancho: f.w, alto: f.h, previa: URL.createObjectURL(t.blob), pesoOriginal: file.size, huella: huellaDe(t.canvas) };
 }
 
 function rutaUnica(blob: Blob, sufijo: string): string {

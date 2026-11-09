@@ -109,3 +109,9 @@ export async function marcaPorSlug(slug: string) {
   const { data } = await supabasePublico().from("v_marcas").select("slug,nombre,cantidad").eq("slug", slug).maybeSingle();
   return data;
 }
+
+/** Si el artículo se unió a otro (repetido), a dónde redirigir su link viejo. */
+export async function redireccionProducto(sku: string) {
+  const { data } = await supabasePublico().rpc("redireccion_producto", { p_sku: sku });
+  return data;
+}
