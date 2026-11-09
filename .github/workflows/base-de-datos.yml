@@ -5,9 +5,9 @@
 #   SUPABASE_ACCESS_TOKEN                         (supabase.com → Account → Access Tokens)
 #   SUPABASE_REF_PRUEBA,  SUPABASE_DB_PASSWORD_PRUEBA
 #   SUPABASE_REF_PRODUCCION, SUPABASE_DB_PASSWORD_PRODUCCION
-# Alternativa más directa (no usa el token): SUPABASE_DB_URL_PRUEBA / SUPABASE_DB_URL_PRODUCCION
+# Alternativa si no hay REF+password+token: SUPABASE_DB_URL_PRUEBA / SUPABASE_DB_URL_PRODUCCION
 #   = Supabase → Connect → "Session pooler" → URI, con la contraseña de la base.
-#   Si está cargada, se usa esa. GitHub no tiene IPv6, por eso va por el pooler (IPv4).
+#   Si está cargada, se usa como respaldo. GitHub no tiene IPv6, por eso va por el pooler (IPv4).
 name: Base de datos
 
 on:
@@ -58,15 +58,14 @@ jobs:
         with: { version: 2.120.0 }
       - name: Conectar con la base
         run: |
-          if [ -n "$DB_URL" ]; then
+          if [ -n "$REF" ] && [ -n "$SUPABASE_DB_PASSWORD" ] && [ -n "$SUPABASE_ACCESS_TOKEN" ]; then
+            supabase link --project-ref "$REF"
+            echo "DESTINO=--linked" >> "$GITHUB_ENV"
+          elif [ -n "$DB_URL" ]; then
             echo "Conexión por el Session pooler (secreto SUPABASE_DB_URL_*)."
             echo "DESTINO=--db-url" >> "$GITHUB_ENV"
           else
-            if [ -z "$REF" ] || [ -z "$SUPABASE_DB_PASSWORD" ]; then
-              echo "::error::Faltan SUPABASE_REF_* y SUPABASE_DB_PASSWORD_* (o SUPABASE_DB_URL_*) para este entorno."; exit 1
-            fi
-            supabase link --project-ref "$REF"
-            echo "DESTINO=--linked" >> "$GITHUB_ENV"
+            echo "::error::Faltan SUPABASE_REF_* + SUPABASE_DB_PASSWORD_* + SUPABASE_ACCESS_TOKEN (o SUPABASE_DB_URL_*) para este entorno."; exit 1
           fi
       - name: Ver qué se va a aplicar
         run: |
