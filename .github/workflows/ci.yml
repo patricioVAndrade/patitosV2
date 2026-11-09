@@ -102,7 +102,7 @@ jobs:
           (npm start > e2e/.tmp/next.log 2>&1 &)
           for i in $(seq 1 60); do curl -fsS http://localhost:3000/ >/dev/null && break; sleep 1; done
       - run: npx playwright install --with-deps chromium
-      - run: npm run e2e -- e2e/flujo-completo.spec.ts
+      - run: npm run e2e
         env:
           E2E_FOTOS: e2e/fotos/juguete1.jpg,e2e/fotos/juguete2.jpg,e2e/fotos/juguete3.jpg
           E2E_CODIGO_LISTA: PRUEBA001

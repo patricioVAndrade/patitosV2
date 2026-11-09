@@ -47,7 +47,8 @@ test.describe("Catálogo público", () => {
     // Al bajar, se cargan más artículos solos (o con el botón "Ver más")
     await page.mouse.wheel(0, 20000);
     const boton = page.getByRole("button", { name: /Ver más/ });
-    if (await boton.isVisible().catch(() => false)) await boton.click();
+    // puede desaparecer justo antes del clic si ya se cargó todo solo: no es un error
+    if (await boton.isVisible().catch(() => false)) await boton.click({ timeout: 3000 }).catch(() => undefined);
     await expect.poll(() => page.locator("article").count()).toBeGreaterThan(24);
   });
 
