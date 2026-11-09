@@ -4,6 +4,7 @@ import { supabaseNavegador } from "@/lib/supabase/cliente";
 import { useCargar } from "@/componentes/panel/useCargar";
 import { usePanel } from "@/componentes/panel/ContextoPanel";
 import { mensajeError } from "@/lib/errores";
+import { ErrorCarga } from "@/componentes/panel/ErrorCarga";
 import { huellaDeUrl } from "@/lib/imagenes";
 import { moneda, urlFoto } from "@/lib/formato";
 import type { FichaCorta, ParRepetido } from "@/lib/supabase/database.types";
@@ -14,7 +15,7 @@ export default function PaginaRepetidos() {
   const [resueltos, setResueltos] = useState<Set<string>>(new Set());
   const [analisis, setAnalisis] = useState<{ hechas: number; total: number } | null>(null);
 
-  const { datos, recargar } = useCargar(async () => {
+  const { datos, error, recargar } = useCargar(async () => {
     const [pares, sinHuella] = await Promise.all([supabase.rpc("pares_repetidos", { p_limite: 60 }), supabase.rpc("fotos_sin_huella", { p_limite: 1 })]);
     if (pares.error) throw pares.error;
     setResueltos(new Set());
@@ -26,7 +27,7 @@ export default function PaginaRepetidos() {
     let hechas = 0;
     const total = datos?.fotosSinAnalizar ?? 0;
     setAnalisis({ hechas, total });
-    for (let vuelta = 0; vuelta < 100; vuelta++) {
+    for (let vuelta = 0; vuelta < 1000; vuelta++) { // de a 40: hasta 40.000 fotos
       const { data } = await supabase.rpc("fotos_sin_huella", { p_limite: 40 });
       const rutas = data?.rutas ?? [];
       if (!rutas.length) break;
@@ -85,8 +86,10 @@ export default function PaginaRepetidos() {
         </section>
       )}
 
-      {!datos ? (
-        <p className="text-suave">Buscando…</p>
+      {error && !datos ? (
+        <ErrorCarga error={error} reintentar={recargar} />
+      ) : !datos ? (
+        <p className="text-suave">Buscando… (puede tardar unos segundos)</p>
       ) : total === 0 ? (
         <p className="tarjeta p-6 text-center">No hay posibles repetidos 🎉</p>
       ) : (

@@ -6,6 +6,7 @@ import { supabaseNavegador } from "@/lib/supabase/cliente";
 import { useCargar } from "@/componentes/panel/useCargar";
 import { usePanel } from "@/componentes/panel/ContextoPanel";
 import { mensajeError } from "@/lib/errores";
+import { ErrorCarga } from "@/componentes/panel/ErrorCarga";
 import { urlFoto } from "@/lib/formato";
 import type { Disponibilidad, GrupoFaltante, ItemRevision, ItemSimple } from "@/lib/supabase/database.types";
 
@@ -51,7 +52,7 @@ function SigueHabiendo() {
   const { avisar } = usePanel();
   const [dias, setDias] = useState(60);
   const [hechos, setHechos] = useState<Set<string>>(new Set());
-  const { datos, recargar } = useCargar(async () => {
+  const { datos, error: errorCarga, recargar } = useCargar(async () => {
     const { data, error } = await supabase.rpc("pendientes_revision", { p_dias: dias, p_limite: 60 });
     if (error) throw error;
     setHechos(new Set());
@@ -83,7 +84,9 @@ function SigueHabiendo() {
           {DIAS.map((d) => <option key={d} value={d}>{d} días</option>)}
         </select>
       </label>
-      {!datos ? (
+      {errorCarga && !datos ? (
+        <ErrorCarga error={errorCarga} reintentar={recargar} />
+      ) : !datos ? (
         <p className="text-suave">Cargando…</p>
       ) : total === 0 ? (
         <p className="tarjeta p-6 text-center">Todo al día 🎉 No hay artículos sin revisar hace más de {dias} días.</p>
@@ -120,7 +123,7 @@ function SigueHabiendo() {
 function DatosQueFaltan() {
   const supabase = supabaseNavegador();
   const { avisar } = usePanel();
-  const { datos, recargar } = useCargar(async () => {
+  const { datos, error: errorCarga, recargar } = useCargar(async () => {
     const { data, error } = await supabase.rpc("datos_faltantes", { p_limite: 40 });
     if (error) throw error;
     return data;
@@ -134,6 +137,7 @@ function DatosQueFaltan() {
     recargar();
   }
 
+  if (errorCarga && !datos) return <ErrorCarga error={errorCarga} reintentar={recargar} />;
   if (!datos) return <p className="text-suave">Cargando…</p>;
   const grupos = GRUPOS.filter(({ g }) => (datos[g]?.total ?? 0) > 0);
   if (!grupos.length) return <p className="tarjeta p-6 text-center">No falta nada 🎉</p>;
